@@ -1,0 +1,11 @@
+[Unit]
+Description=Apple Magic Trackpad 3-finger gesture daemon
+After=graphical-session.target
+
+[Service]
+ExecStart=/home/lonnie/.config/hypr/scripts/trackpad-gestures
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+"""
+Trackpad gesture daemon for Apple Magic Trackpad:
+  - 3-finger horizontal swipe  → browser tab next/prev (Ctrl+Tab / Ctrl+Shift+Tab)
+  - 3-finger vertical swipe    → browser tab new/close (Ctrl+T / Ctrl+W)
+
+Gestures apply to the entire trackpad surface.
+"""
+
+import subprocess
+import sys
+import time
+import evdev
+from evdev import ecodes as e
+
+DEVICE_NAME   = 'Apple Inc. Magic Trackpad'
+
+# 3-finger tab gesture tuning
+TAB_THRESHOLD = 300   # raw units of accumulated delta before firing
+TAB_COOLDOWN  = 0.4   # seconds between firings
+
+_tab_accum_x = 0.0
+_tab_accum_y = 0.0
+_tab_last    = 0.0
+
+
+def find_trackpad():
+    for path in evdev.list_devices():
+        try:
+            d = evdev.InputDevice(path)
+            if d.name == DEVICE_NAME:
+                caps = d.capabilities()
+                # Pick the node that reports ABS_MT_POSITION_X (code 53)
+                if any(code == e.ABS_MT_POSITION_X for code, _ in caps.get(e.EV_ABS, [])):
+                    return d
+                d.close()
+        except Exception:
+            pass
+    return None
+
+
+def fire_tab(action):
+    global _tab_accum_x, _tab_accum_y, _tab_last
+    now = time.monotonic()
+    if now - _tab_last < TAB_COOLDOWN:
+        return
+    _tab_last    = now
+    _tab_accum_x = 0.0
+    _tab_accum_y = 0.0
+    shortcuts = {
+        'next':  'CTRL, Tab, activewindow',
+        'prev':  'CTRL SHIFT, Tab, activewindow',
+        'close': 'CTRL, W, activewindow',
+        'new':   'CTRL, T, activewindow',
+    }
+    subprocess.Popen(['hyprctl', 'dispatch', 'sendshortcut', shortcuts[action]])
+
+
+def watch(pad):
+    global _tab_accum_x, _tab_accum_y
+
+    slots        = {}
+    cur_slot     = 0
+    slot_x_delta = {}
+    slot_y_delta = {}
+
+    for ev in pad.read_loop():
+        if ev.type == e.EV_ABS:
+            if ev.code == e.ABS_MT_SLOT:
+                cur_slot = ev.value
+            elif ev.code == e.ABS_MT_TRACKING_ID:
+                if ev.value == -1:
+                    slots.pop(cur_slot, None)
+                else:
+                    slots[cur_slot] = {'id': ev.value, 'x': None, 'y': None}
+            elif ev.code == e.ABS_MT_POSITION_X:
+                if cur_slot in slots:
+                    prev = slots[cur_slot]['x']
+                    if prev is not None:
+                        slot_x_delta[cur_slot] = ev.value - prev
+                    slots[cur_slot]['x'] = ev.value
+            elif ev.code == e.ABS_MT_POSITION_Y:
+                if cur_slot in slots:
+                    prev = slots[cur_slot]['y']
+                    if prev is not None:
+                        slot_y_delta[cur_slot] = ev.value - prev
+                    slots[cur_slot]['y'] = ev.value
+
+        elif ev.type == e.EV_SYN and ev.code == e.SYN_REPORT:
+            n = len(slots)
+
+            if n == 3:
+                x_deltas = list(slot_x_delta.values())
+                y_deltas = list(slot_y_delta.values())
+
+                # Require all 3 slots actively moving to filter out palm+2-finger misfires.
+                MIN_SLOT_DELTA = 40
+                active = sum(
+                    1 for k in slots
+                    if abs(slot_x_delta.get(k, 0)) + abs(slot_y_delta.get(k, 0)) >= MIN_SLOT_DELTA
+                )
+
+                if active >= 3 and (x_deltas or y_deltas):
+                    avg_x = sum(x_deltas) / len(x_deltas) if x_deltas else 0
+                    avg_y = sum(y_deltas) / len(y_deltas) if y_deltas else 0
+
+                    if abs(avg_x) >= abs(avg_y):
+                        # Horizontal swipe → next / prev tab
+                        _tab_accum_x += avg_x
+                        if abs(_tab_accum_x) >= TAB_THRESHOLD:
+                            fire_tab('prev' if _tab_accum_x > 0 else 'next')
+                        _tab_accum_y = 0.0
+                    else:
+                        # Vertical swipe → new / close tab
+                        _tab_accum_y += avg_y
+                        if abs(_tab_accum_y) >= TAB_THRESHOLD:
+                            fire_tab('new' if _tab_accum_y > 0 else 'close')
+                        _tab_accum_x = 0.0
+                else:
+                    _tab_accum_x = 0.0
+                    _tab_accum_y = 0.0
+            else:
+                _tab_accum_x = 0.0
+                _tab_accum_y = 0.0
+
+            slot_x_delta.clear()
+            slot_y_delta.clear()
+
+
+def main():
+    while True:
+        pad = find_trackpad()
+        if pad is None:
+            print(f'trackpad-gestures: device "{DEVICE_NAME}" not found, retrying in 5s', flush=True)
+            time.sleep(5)
+            continue
+        print(f'trackpad-gestures: opened {pad.path} ({pad.name})', flush=True)
+        try:
+            watch(pad)
+        except OSError as ex:
+            print(f'trackpad-gestures: lost device ({ex}), reconnecting...', flush=True)
+            time.sleep(2)
+
+
+if __name__ == '__main__':
+    main()

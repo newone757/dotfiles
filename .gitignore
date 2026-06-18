@@ -1,0 +1,10 @@
+# Omarchy-managed — not user configs
+machines/*/.config/omarchy/backgrounds/
+machines/*/.config/omarchy/themes/
+
+# Junk
+*.bak
+*.bak.*
+__pycache__/
+*.pyc
+.DS_Store
