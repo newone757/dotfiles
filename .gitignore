@@ -1,6 +1,10 @@
 # Omarchy-managed — not user configs
 machines/*/.config/omarchy/backgrounds/
 machines/*/.config/omarchy/themes/
+machines/*/.config/omarchy/current/theme/backgrounds/
+
+# Build artifacts — reinstall with: pip install --target ... bscpylgtv (venv)
+machines/*/.local/lgpowercontrol/bscpylgtv/
 
 # Junk
 *.bak
