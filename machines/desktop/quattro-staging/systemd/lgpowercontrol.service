@@ -1,0 +1,20 @@
+[Unit]
+Description=LG TV power control (lock-driven)
+Documentation=file:%h/.local/lgpowercontrol/README.md
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/lgpowercontrol/lgpowercontrol-daemon.sh
+Restart=on-failure
+RestartSec=5
+
+# The daemon calls hyprctl and omarchy-hyprland-session-locked, both of which
+# need the compositor socket. A user unit under graphical-session.target
+# inherits WAYLAND_DISPLAY/HYPRLAND_INSTANCE_SIGNATURE from the session
+# environment that Hyprland imports at startup (see Quattro's autostart:
+# `systemctl --user import-environment`).
+
+[Install]
+WantedBy=graphical-session.target
