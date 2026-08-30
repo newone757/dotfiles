@@ -1,14 +1,32 @@
 #!/bin/bash
 # Wakes both displays (DP-6 via DPMS, TV via WebOS) on the first real input
-# activity while hyprlock is up, instead of waiting for a full unlock.
+# activity while the session is locked, instead of waiting for a full unlock.
 #
-# Why: Hyprland suppresses monitor wake-on-input entirely while the session
-# is held by ext-session-lock (hyprlock) — confirmed this affects every
-# output, not just the TV: DP-6 doesn't auto-wake on activity while locked
-# either, only Hyprland's own resume-on-unlock does. libinput reads raw
-# evdev directly, bypassing that suppression, so we drive both wakes here.
+# Quattro port of ~/.local/lgpowercontrol/wake-displays-on-activity.sh.
+# Staged 2026-08-30 — NOT yet installed.
+#
+# ONLY CHANGE vs the 3.8.4 version: every `pgrep -x hyprlock` became
+# `omarchy-hyprland-session-locked`, because Quattro uninstalls hyprlock. Left
+# unported, this script would silently exit at the first line and the displays
+# would stay dark until a full unlock — a quiet failure, not a loud one, which
+# is exactly the kind worth catching before it bites.
+#
+# Why this exists at all: Hyprland suppresses monitor wake-on-input while the
+# session is held by ext-session-lock — confirmed to affect every output, not
+# just the TV. libinput reads raw evdev directly, bypassing that suppression,
+# so we drive both wakes here.
+#
+# ⚠️  VERIFY AFTER UPGRADING: this assumes Quattro's Quickshell lock still holds
+# an ext-session-lock and still suppresses wake-on-input the same way. If the
+# new lock wakes displays on its own, this script becomes redundant — check
+# before keeping it.
 
-pgrep -x hyprlock >/dev/null || exit 0
+is_locked() {
+  omarchy-hyprland-session-locked
+  [[ $? -eq 0 ]]
+}
+
+is_locked || exit 0
 
 FIFO=$(mktemp -u /tmp/display-activity-XXXXXX.fifo)
 mkfifo "$FIFO"
@@ -23,13 +41,13 @@ while IFS= read -r line; do
         break
         ;;
     esac
-    pgrep -x hyprlock >/dev/null || break
+    is_locked || break
 done <"$FIFO"
 
 kill "$LIBINPUT_PID" 2>/dev/null
 
-if pgrep -x hyprlock >/dev/null; then
+if is_locked; then
     hyprctl dispatch dpms on DP-6
     omarchy-brightness-keyboard restore
-    ~/.local/lgpowercontrol/tv-on.sh
+    "$HOME/.local/lgpowercontrol/tv-on.sh"
 fi
