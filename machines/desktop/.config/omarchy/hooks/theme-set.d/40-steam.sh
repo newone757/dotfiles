@@ -1,7 +1,7 @@
 #!/bin/bash
 
-input_file="$HOME/.config/omarchy/current/theme/alacritty.toml"
-output_file="$HOME/.config/omarchy/current/theme/steam.css"
+input_file="$HOME/.local/state/omarchy/current/theme/alacritty.toml"
+output_file="$HOME/.local/state/omarchy/current/theme/steam.css"
 
 hex2rgb() {
     hex_input=$1
@@ -176,7 +176,7 @@ EOF
 fi
 
 adwaita_location=$HOME/.local/share/steam-adwaita
-font_path=$(fc-list $(omarchy-font-current) file | grep -ioP '.*\.ttf' | head -n 1)
+font_path=$(fc-list "$(omarchy-font-current)" file | grep -ioP '.*\.ttf' | head -n 1)
 
 install_steam_theme() {
     if [[ ! -d "$adwaita_location" ]]; then

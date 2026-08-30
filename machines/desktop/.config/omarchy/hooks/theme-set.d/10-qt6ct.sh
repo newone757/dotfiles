@@ -1,7 +1,7 @@
 #!/bin/bash
 
-input_file="$HOME/.config/omarchy/current/theme/alacritty.toml"
-new_qt_file="$HOME/.config/omarchy/current/theme/qt6ct.conf"
+input_file="$HOME/.local/state/omarchy/current/theme/alacritty.toml"
+new_qt_file="$HOME/.local/state/omarchy/current/theme/qt6ct.conf"
 
 success() {
     echo -e "\e[32m[SUCCESS]\e[0m $1"
@@ -54,7 +54,7 @@ extract_from_section() {
 }
 
 if ! command -v qt6ct >/dev/null 2>&1; then
-    warning "Qt6ct not found. Install 'qt6ct' to use..\n"
+    echo "qt6ct not found; skipping. Install 'qt6ct' to theme Qt apps." >&2
     exit 0
 fi
 

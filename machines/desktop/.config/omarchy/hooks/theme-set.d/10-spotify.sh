@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-input_file="$HOME/.config/omarchy/current/theme/alacritty.toml"
+input_file="$HOME/.local/state/omarchy/current/theme/alacritty.toml"
 
 success() {
     echo -e "\e[32m[SUCCESS]\e[0m $1"

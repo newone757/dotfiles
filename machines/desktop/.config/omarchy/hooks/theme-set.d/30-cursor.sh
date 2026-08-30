@@ -1,7 +1,7 @@
 #!/bin/bash
 
-input_file="$HOME/.config/omarchy/current/theme/alacritty.toml"
-output_file="$HOME/.config/omarchy/current/theme/cursor_colors.json"
+input_file="$HOME/.local/state/omarchy/current/theme/alacritty.toml"
+output_file="$HOME/.local/state/omarchy/current/theme/cursor_colors.json"
 
 success() {
     echo -e "\e[32m[SUCCESS]\e[0m $1"

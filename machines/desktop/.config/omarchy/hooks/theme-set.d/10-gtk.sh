@@ -1,7 +1,7 @@
 #!/bin/bash
 
-input_file="$HOME/.config/omarchy/current/theme/alacritty.toml"
-new_gtk_file="$HOME/.config/omarchy/current/theme/gtk.css"
+input_file="$HOME/.local/state/omarchy/current/theme/alacritty.toml"
+new_gtk_file="$HOME/.local/state/omarchy/current/theme/gtk.css"
 gtk3_dir="$HOME/.config/gtk-3.0"
 gtk4_dir="$HOME/.config/gtk-4.0"
 gtk3_file="$gtk3_dir/gtk.css"

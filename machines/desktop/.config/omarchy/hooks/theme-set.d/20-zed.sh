@@ -1,7 +1,7 @@
 #!/bin/bash
 
-input_file="$HOME/.config/omarchy/current/theme/alacritty.toml"
-new_zed_file="$HOME/.config/omarchy/current/theme/zed.json"
+input_file="$HOME/.local/state/omarchy/current/theme/alacritty.toml"
+new_zed_file="$HOME/.local/state/omarchy/current/theme/zed.json"
 
 success() {
     echo -e "\e[32m[SUCCESS]\e[0m $1"
