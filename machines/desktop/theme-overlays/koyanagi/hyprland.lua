@@ -57,9 +57,13 @@ hl.config({
       ignore_opacity = true,
     },
 
-    -- Upstream koyanagi-config sets active 0.75 / inactive 0.65. Dropped:
-    -- it reads as every window being faded rather than as depth. Windows stay
-    -- fully opaque; the blur below still applies to the shell surfaces.
+    -- Upstream koyanagi-config sets active 0.75 / inactive 0.65, which reads
+    -- as every window being faded rather than as depth. Dialled back to a hint:
+    -- the focused window is all but solid, and unfocused ones sit back slightly.
+    -- Raise toward 1.0 for less, lower for more.
+    active_opacity = 0.95,
+    inactive_opacity = 0.90,
+    fullscreen_opacity = 1.0,
   },
 
   group = {
