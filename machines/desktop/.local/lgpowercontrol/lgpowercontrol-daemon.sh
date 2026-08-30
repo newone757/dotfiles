@@ -70,6 +70,10 @@ DEEP_AFTER_LOCK_SECS=3300
 # undoes the blank. Tuned to 3s against hyprlock; RE-TUNE against the
 # Quickshell lock if blanking becomes unreliable.
 BLANK_SETTLE_SECS=3
+
+# Serializes blank vs restore. Both take this before touching TV power, so a
+# blank that is still settling cannot land after a restore has already run.
+TV_STATE_LOCK=/tmp/lgpowercontrol-tv-state.lock
 # ---------------------------------------------------------------------------
 
 log() { echo "$*" | logger --tag lgpowercontrol-daemon; }
@@ -85,6 +89,20 @@ tv_blank() {
   log "locked -- blanking panel (TV stays powered)"
   sleep "$BLANK_SETTLE_SECS"
 
+  exec 8>"$TV_STATE_LOCK"
+  flock 8
+
+  # Re-check under the lock. A quick lock->unlock inside BLANK_SETTLE_SECS
+  # would otherwise let this backgrounded job blank the panel AFTER
+  # tv_restore already brought it back, leaving a black screen on an unlocked
+  # session and no event left to correct it. Observed 2026-08-30 with 1s of
+  # margin: lock 14:05:54, blank due 14:05:57, unlock 14:05:58.
+  if ! is_locked; then
+    log "blank aborted -- session unlocked during the ${BLANK_SETTLE_SECS}s settle"
+    flock -u 8
+    return
+  fi
+
   # Scope the DPMS to the secondary only. HDMI-A-2 is deliberately left alone:
   # the TV is still fully powered here, so cutting its HDMI signal makes it show
   # a "No Signal" banner instead of going quiet.
@@ -92,6 +110,8 @@ tv_blank() {
 
   timeout 10 "$BSCPYLGTV" "$TV_IP" turn_screen_off >/dev/null 2>&1 ||
     log "WARN: turn_screen_off failed"
+
+  flock -u 8
 
   # Wake both displays on the first real input, without waiting for a full
   # unlock. Hyprland suppresses wake-on-input for every output while an
@@ -101,17 +121,24 @@ tv_blank() {
 
 tv_deep_off() {
   log "deep idle -- powering TV off"
+  exec 8>"$TV_STATE_LOCK"
+  flock 8
   timeout 10 "$BSCPYLGTV" "$TV_IP" power_off >/dev/null 2>&1 ||
     log "WARN: power_off failed"
+  flock -u 8
 }
 
 tv_restore() {
   log "unlocked -- restoring displays"
+  # Blocks until any in-flight blank finishes, so restore is always last.
+  exec 8>"$TV_STATE_LOCK"
+  flock 8
   hyprctl dispatch dpms on "$SECONDARY" >/dev/null 2>&1
   # tv-on.sh flocks and checks get_power_state itself, so it is safe to call
   # redundantly and picks the fast path (turn_screen_on) vs the slow one
   # (WoL + HDMI handshake) automatically.
   "$HOME/.local/lgpowercontrol/tv-on.sh"
+  flock -u 8
 }
 
 # --- state machine ---------------------------------------------------------
