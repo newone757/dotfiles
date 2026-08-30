@@ -1,0 +1,197 @@
+SUPER + RETURN                      → Terminal
+SUPER ALT + RETURN                  → Tmux
+SUPER SHIFT + RETURN                → Browser
+SUPER SHIFT + F                     → File manager
+SUPER + SPACE                       → Launch apps
+COPILOT KEY                         → Omarchy menu
+SUPER ALT + SPACE                   → Omarchy menu
+SUPER + ESCAPE                      → System menu
+SUPER SHIFT CTRL + SPACE            → Theme menu
+SUPER + F                           → Full screen
+SUPER ALT + F                       → Full width
+CTRL ALT + DELETE                   → Close all windows
+SUPER + T                           → Toggle window floating/tiling
+SUPER + J                           → Toggle window split
+SUPER + O                           → Pop window out (float & pin)
+SUPER + C                           → Universal copy
+SUPER + V                           → Universal paste
+SUPER + X                           → Universal cut
+SUPER CTRL + V                      → Clipboard manager
+SUPER CTRL + A                      → Audio controls
+SUPER CTRL + B                      → Bluetooth controls
+SUPER CTRL + W                      → Wifi controls
+SUPER CTRL + E                      → Emoji picker
+SUPER + PRINT                       → Color picker
+PRINT                               → Screenshot
+ALT + PRINT                         → Screenrecording
+SUPER SHIFT ALT + B                 → Browser (private)
+SUPER SHIFT + B                     → Browser
+SUPER + 0                           → Switch to workspace 10
+SUPER + 1                           → Switch to workspace 1
+SUPER + 2                           → Switch to workspace 2
+SUPER + 3                           → Switch to workspace 3
+SUPER + 4                           → Switch to workspace 4
+SUPER + 5                           → Switch to workspace 5
+SUPER + 6                           → Switch to workspace 6
+SUPER + 7                           → Switch to workspace 7
+SUPER + 8                           → Switch to workspace 8
+SUPER + 9                           → Switch to workspace 9
+SUPER CTRL + TAB                    → Former workspace
+SUPER SHIFT + TAB                   → Previous workspace
+SUPER + TAB                         → Next workspace
+SUPER SHIFT + 0                     → Move window to workspace 10
+SUPER SHIFT + 1                     → Move window to workspace 1
+SUPER SHIFT + 2                     → Move window to workspace 2
+SUPER SHIFT + 3                     → Move window to workspace 3
+SUPER SHIFT + 4                     → Move window to workspace 4
+SUPER SHIFT + 5                     → Move window to workspace 5
+SUPER SHIFT + 6                     → Move window to workspace 6
+SUPER SHIFT + 7                     → Move window to workspace 7
+SUPER SHIFT + 8                     → Move window to workspace 8
+SUPER SHIFT + 9                     → Move window to workspace 9
+SUPER SHIFT ALT + 0                 → Move window silently to workspace 10
+SUPER SHIFT ALT + 1                 → Move window silently to workspace 1
+SUPER SHIFT ALT + 2                 → Move window silently to workspace 2
+SUPER SHIFT ALT + 3                 → Move window silently to workspace 3
+SUPER SHIFT ALT + 4                 → Move window silently to workspace 4
+SUPER SHIFT ALT + 5                 → Move window silently to workspace 5
+SUPER SHIFT ALT + 6                 → Move window silently to workspace 6
+SUPER SHIFT ALT + 7                 → Move window silently to workspace 7
+SUPER SHIFT ALT + 8                 → Move window silently to workspace 8
+SUPER SHIFT ALT + 9                 → Move window silently to workspace 9
+SUPER SHIFT + DOWN                  → Swap window down
+SUPER SHIFT + LEFT                  → Swap window to the left
+SUPER SHIFT + RIGHT                 → Swap window to the right
+SUPER SHIFT + UP                    → Swap window up
+ALT + TAB                           → Focus on next window
+CTRL ALT + TAB                      → Focus on next monitor
+SHIFT ALT + TAB                     → Focus on previous window
+SHIFT CTRL ALT + TAB                → Focus on previous monitor
+SUPER + DOWN                        → Focus on below window
+SUPER + LEFT                        → Focus on left window
+SUPER + RIGHT                       → Focus on right window
+SUPER + UP                          → Focus on above window
+SUPER + LEFT MOUSE BUTTON           → Move window
+SUPER + RIGHT MOUSE BUTTON          → Resize window
+SUPER + minus                       → Expand window left
+SUPER SHIFT + equal                 → Expand window down
+SUPER + equal                       → Shrink window left
+SUPER SHIFT + minus                 → Shrink window up
+SUPER ALT + S                       → Move window to scratchpad
+SUPER + S                           → Toggle scratchpad
+SUPER ALT + COMMA                   → Invoke last notification
+SUPER + COMMA                       → Dismiss last notification
+SUPER CTRL + COMMA                  → Toggle silencing notifications
+SUPER SHIFT ALT + COMMA             → Restore last notification
+SUPER SHIFT + COMMA                 → Dismiss all notifications
+SUPER + BACKSPACE                   → Toggle window transparency
+SUPER CTRL + N                      → Toggle nightlight
+SUPER CTRL + I                      → Toggle locking on idle
+F9                                  → Start dictation (push-to-talk)
+F9                                  → Stop dictation (push-to-talk)
+SHIFT ALT + L                       → Copy URL from Web App
+SUPER ALT + slash                   → Cycle monitor scaling backwards
+SUPER CTRL ALT + B                  → Show battery remaining
+SUPER CTRL ALT + Delete             → Toggle laptop display mirroring
+SUPER CTRL ALT + R                  → Show reminders
+SUPER CTRL ALT + T                  → Show time
+SUPER CTRL ALT + W                  → Show weather
+SUPER CTRL ALT + Z                  → Reset zoom
+SUPER CTRL + BACKSPACE              → Toggle single-window square aspect
+SUPER CTRL + C                      → Capture menu
+SUPER CTRL + Delete                 → Toggle laptop display
+SUPER CTRL + F                      → Tiled full screen
+SUPER CTRL + H                      → Hardware menu
+SUPER CTRL + L                      → Toggle workspace layout
+SUPER CTRL + O                      → Toggle menu
+SUPER CTRL + PERIOD                 → Transcode
+SUPER CTRL + PRINT                  → Extract text (OCR) from screenshot
+SUPER CTRL + R                      → Set reminder
+SUPER CTRL + SPACE                  → Theme background menu
+SUPER CTRL + S                      → Share
+SUPER CTRL + T                      → Activity
+SUPER CTRL + X                      → Toggle dictation
+SUPER CTRL + Z                      → Zoom in
+SUPER + grave                       → bash -c &apos;OMARCHY_LOCK_ONLY=true omarchy-system-lock; (sleep 10 &amp;&amp; hyprctl dispatch dpms off DP-6 &amp;&amp; /home/lonnie/.local/lgpowercontrol/bscpylgtv/bin/bscpylgtvcommand 10.0.1.28 turn_screen_off &amp;&amp; (timeout 7200 ~/.local/lgpowercontrol/wake-displays-on-activity.sh &amp;)) &amp; POWEROFF_PID=$!; until ! pgrep -x hyprlock &gt;/dev/null; do sleep 1; done; kill $POWEROFF_PID 2&gt;/dev/null; ~/.local/lgpowercontrol/tv-on.sh&apos;
+SUPER + K                           → Show key bindings
+SUPER + L                           → bash -c &apos;OMARCHY_LOCK_ONLY=true omarchy-system-lock; (sleep 10 &amp;&amp; hyprctl dispatch dpms off DP-6 &amp;&amp; /home/lonnie/.local/lgpowercontrol/bscpylgtv/bin/bscpylgtvcommand 10.0.1.28 turn_screen_off &amp;&amp; (timeout 7200 ~/.local/lgpowercontrol/wake-displays-on-activity.sh &amp;)) &amp; POWEROFF_PID=$!; until ! pgrep -x hyprlock &gt;/dev/null; do sleep 1; done; kill $POWEROFF_PID 2&gt;/dev/null; ~/.local/lgpowercontrol/tv-on.sh&apos;
+SUPER + P                           → Pseudo window
+SUPER + Q                           → killactive
+SUPER SHIFT + A                     → Claude
+SUPER SHIFT ALT + A                 → Grok
+SUPER SHIFT ALT + DOWN              → Move workspace to down monitor
+SUPER SHIFT ALT + G                 → WhatsApp
+SUPER SHIFT ALT + LEFT              → Move workspace to left monitor
+SUPER SHIFT ALT + M                 → Music TUI
+SUPER SHIFT ALT + RIGHT             → Move workspace to right monitor
+SUPER SHIFT ALT + UP                → Move workspace to up monitor
+SUPER SHIFT ALT + X                 → X Post
+SUPER SHIFT + BACKSPACE             → Toggle window gaps
+SUPER SHIFT + C                     → Calendar
+SUPER SHIFT CTRL + G                → Google Messages
+SUPER SHIFT CTRL + I                → Restart idle daemon
+SUPER SHIFT CTRL + R                → Clear reminders
+SUPER SHIFT + D                     → Docker
+SUPER SHIFT + E                     → Email
+SUPER SHIFT + G                     → Signal
+SUPER SHIFT + H                     → Home
+SUPER SHIFT + K                     → TV on
+SUPER SHIFT + L                     → TV off
+SUPER SHIFT + M                     → Music
+SUPER SHIFT + N                     → Editor
+SUPER SHIFT + O                     → Obsidian
+SUPER SHIFT + R                     → Reddit
+SUPER SHIFT + slash                 → Passwords
+SUPER SHIFT + SPACE                 → Toggle top bar
+SUPER SHIFT + T                     → Activity
+SUPER SHIFT + X                     → X
+SUPER SHIFT + Y                     → YouTube
+SUPER + slash                       → Cycle monitor scaling
+switch:off:Lid Switch               → omarchy-hyprland-monitor-internal on
+switch:on:Lid Switch                → omarchy-hw-external-monitors &amp;&amp; omarchy-hyprland-monitor-internal off
+SUPER ALT + 1                       → Switch to group window 1
+SUPER ALT + 2                       → Switch to group window 2
+SUPER ALT + 3                       → Switch to group window 3
+SUPER ALT + 4                       → Switch to group window 4
+SUPER ALT + 5                       → Switch to group window 5
+SUPER ALT + DOWN                    → Move window to group on bottom
+SUPER ALT + G                       → Move active window out of group
+SUPER ALT + LEFT                    → Move window to group on left
+SUPER ALT + mouse_down              → Next window in group
+SUPER ALT + mouse_up                → Previous window in group
+SUPER ALT + RIGHT                   → Move window to group on right
+SUPER ALT + TAB                     → Next window in group
+SUPER ALT + UP                      → Move window to group on top
+SUPER CTRL + LEFT                   → Move grouped window focus left
+SUPER CTRL + RIGHT                  → Move grouped window focus right
+SUPER + G                           → Toggle window grouping
+SUPER SHIFT ALT + TAB               → Previous window in group
+SUPER + mouse_down                  → Scroll active workspace forward
+SUPER + mouse_up                    → Scroll active workspace backward
+ALT + TAB                           → Reveal active window on top
+SHIFT ALT + TAB                     → Reveal active window on top
+ALT + XF86AudioLowerVolume          → Volume down precise
+ALT + XF86AudioRaiseVolume          → Volume up precise
+ALT + XF86MonBrightnessDown         → Brightness down precise
+ALT + XF86MonBrightnessUp           → Brightness up precise
+SHIFT + XF86MonBrightnessDown       → Brightness minimum
+SHIFT + XF86MonBrightnessUp         → Brightness maximum
+SUPER + XF86AudioMute               → Switch audio output
+XF86AudioLowerVolume                → Volume down
+XF86AudioMicMute                    → Mute microphone
+XF86AudioMute                       → Mute
+XF86AudioNext                       → Next track
+XF86AudioPause                      → Pause
+XF86AudioPlay                       → Play
+XF86AudioPrev                       → Previous track
+XF86AudioRaiseVolume                → Volume up
+XF86Calculator                      → Calculator
+XF86KbdBrightnessDown               → Keyboard brightness down
+XF86KbdBrightnessUp                 → Keyboard brightness up
+XF86KbdLightOnOff                   → Keyboard backlight cycle
+XF86MonBrightnessDown               → Brightness down
+XF86MonBrightnessUp                 → Brightness up
+XF86PowerOff                        → Power menu
+XF86TouchpadOff                     → Disable touchpad
+XF86TouchpadOn                      → Enable touchpad
+XF86TouchpadToggle                  → Toggle touchpad

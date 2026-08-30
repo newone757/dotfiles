@@ -1,0 +1,5 @@
+#!/bin/bash
+# Returns 0 (true) if a screensaver inhibitor is active (e.g. browser video playing),
+# 1 (false) if not. Used in hypridle on-timeout to skip screensaver/lock during video.
+count=$(cat /tmp/screensaver_inhibit_count 2>/dev/null)
+[[ "${count:-0}" -gt 0 ]]

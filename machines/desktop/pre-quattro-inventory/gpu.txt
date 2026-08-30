@@ -1,0 +1,2 @@
+name, driver_version
+NVIDIA GeForce RTX 3080, 610.43.03

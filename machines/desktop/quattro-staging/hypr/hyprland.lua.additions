@@ -1,0 +1,57 @@
+-- NOT a drop-in file. These are the lines to ADD to the bottom of the stock
+-- Quattro ~/.config/hypr/hyprland.lua, below its require() block.
+--
+-- Do NOT overwrite the shipped hyprland.lua — it contains the bootstrap
+-- dofile() and the default require chain that everything else depends on.
+
+------------------------------------------------------------------------------
+-- NVIDIA environment
+------------------------------------------------------------------------------
+-- Ported from the top of your 3.8.4 hyprland.conf.
+-- Hardware: NVIDIA RTX 3080 (driver 610.43.03) + AMD Raphael iGPU — hybrid.
+
+hl.env("LIBVA_DRIVER_NAME", "nvidia")
+hl.env("GBM_BACKEND", "nvidia-drm")
+hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+
+-- WLR_NO_HARDWARE_CURSORS is a legacy wlroots variable. Hyprland has its own
+-- `cursor:no_hardware_cursors` setting and hasn't been wlroots-based for a long
+-- time, so this is very likely dead weight carried forward from an old guide.
+-- Your 3.8.4 line also used `env = NAME=VALUE` rather than Hyprland's
+-- `env = NAME,VALUE` form.
+--
+-- Try WITHOUT it first after upgrading. If you get cursor flicker or an
+-- invisible cursor, use the modern setting instead of the env var:
+--   hl.config({ cursor = { no_hardware_cursors = true } })
+-- hl.env("WLR_NO_HARDWARE_CURSORS", "1")
+
+------------------------------------------------------------------------------
+-- ⚠️  DO NOT USE `omarchy toggle hybrid gpu` ON THIS MACHINE
+------------------------------------------------------------------------------
+-- It is a LAPTOP feature. Its own summary line reads:
+--   "Toggle dedicated vs integrated GPU mode via supergfxd
+--    (for hybrid gpu laptops, like Asus G14)."
+-- It drives supergfxd/supergfxctl — the asus-linux stack for muxless laptops
+-- that power the dGPU down to save battery. It has no desktop use case.
+--
+-- It WILL still be offered to you. The gate is `omarchy-hw-hybrid-gpu`, which
+-- with supergfxctl absent falls back to:
+--   lspci | grep -cE 'VGA|3D|Display' >= 2
+-- This desktop has 2 (RTX 3080 at 01:00.0 + AMD Raphael iGPU at 11:00.0), so
+-- the toggle appears under Trigger > Hardware (SUPER+CTRL+H).
+--
+-- Choosing "Use only integrated GPU and reboot?" would be a BLACK SCREEN:
+--   card2 (RTX 3080): DP-6 connected, HDMI-A-2 connected   <- both displays
+--   card1 (AMD iGPU): DP-1, DP-2, DP-3, HDMI-A-1 ALL disconnected
+-- Nothing is plugged into the motherboard video outputs, so an iGPU-only boot
+-- has no display to drive. It also installs supergfxctl, writes
+-- /etc/supergfxd.conf, and enables the supergfxd service as a side effect.
+--
+-- Everything already goes through the 3080. Keep the env vars above; ignore
+-- the toggle.
+
+------------------------------------------------------------------------------
+-- Workspace pinning
+------------------------------------------------------------------------------
+-- See the note at the bottom of monitors.lua. Six rules to port, syntax
+-- unconfirmed — deliberately not guessed.

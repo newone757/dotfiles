@@ -1,0 +1,500 @@
+Date: Sun Aug 30 12:51:55 PM EDT 2026
+Hostname: omarchy
+Omarchy Branch: master
+
+=========================================
+SYSTEM INFORMATION
+=========================================
+12System:
+  12Kernel 7.1.4-arch1-1 12arch x86_64 12bits 64 12compiler gcc 12v 16.1.1 12clocksource tsc 12avail hpet,acpi_pm
+    12parameters quiet splash cryptdevice=PARTUUID=f8ee71ec-c676-42b5-b485-c93b0beda09d:root
+    root=/dev/mapper/root zswap.enabled=0 rootflags=subvol=@ rw rootfstype=btrfs
+  12Desktop Hyprland 12v 0.56.0 12with waybar 12tools hypridle 12avail hyprlock 12vt 1 12dm SDDM
+    12Distro Arch Linux
+12Machine:
+  12Type Desktop 12System Gigabyte 12product B650 GAMING X AX V2 12v N/A 12serial <superuser required>
+  12Mobo Gigabyte 12model B650 GAMING X AX V2 12v x.x 12serial <superuser required>
+    12uuid <superuser required> 12Firmware UEFI 12vendor American Megatrends LLC. 12v F32g 12date 12/19/2024
+12Battery:
+  12Device-1 hid-CC2248402SV0FLWA8-battery-144 12model Apple Inc. Magic Trackpad 12serial N/A 12charge N/A
+    12status charging
+12CPU:
+  12Info 12model AMD Ryzen 7 7800X3D 12bits 64 12type MCP 12arch Zen 4 12gen 4 12level v4 12note check 12built 2022+
+    12process TSMC n5 (5nm) 12family 0x19 (25) 12model-id 0x61 (97) 12stepping 2 12microcode 0xA601209
+  12Topology 12cpus 1x 12dies 1 12clusters 1 12cores 8 12smt <unsupported> 12cache 12L1 512 KiB
+    12desc d-8x32 KiB; i-8x32 KiB 12L2 8 MiB 12desc 8x1024 KiB 12L3 96 MiB 12desc 1x96 MiB
+  12Speed (MHz) 12avg 3981 12min/max 426/5053 12boost enabled 12scaling 12driver amd-pstate-epp
+    12governor performance 12cores 121 3981 122 3981 123 3981 124 3981 125 3981 126 3981 127 3981 128 3981 12bogomips 67069
+  12Flags-basic avx avx2 ht lm nx pae sse sse2 sse3 sse4_1 sse4_2 sse4a ssse3 svm
+  12Vulnerabilities
+  12Type gather_data_sampling 12status Not affected
+  12Type ghostwrite 12status Not affected
+  12Type indirect_target_selection 12status Not affected
+  12Type itlb_multihit 12status Not affected
+  12Type l1tf 12status Not affected
+  12Type mds 12status Not affected
+  12Type meltdown 12status Not affected
+  12Type mmio_stale_data 12status Not affected
+  12Type old_microcode 12status Not affected
+  12Type reg_file_data_sampling 12status Not affected
+  12Type retbleed 12status Not affected
+  12Type spec_rstack_overflow 12mitigation Safe RET
+  12Type spec_store_bypass 12mitigation Speculative Store Bypass disabled via prctl
+  12Type spectre_v1 12mitigation usercopy/swapgs barriers and __user pointer sanitization
+  12Type spectre_v2 12mitigation Enhanced / Automatic IBRS; IBPB: conditional; STIBP: disabled;
+    PBRSB-eIBRS: Not affected; BHI: Not affected
+  12Type srbds 12status Not affected
+  12Type tsa 12status Vulnerable: No microcode
+  12Type tsx_async_abort 12status Not affected
+  12Type vmscape 12mitigation IBPB before exit to userspace
+12Graphics:
+  12Device-1 NVIDIA GA102 [GeForce RTX 3080] 12vendor Gigabyte 12driver nvidia 12v 610.43.03
+    12alternate nouveau,nvidia_drm 12non-free 550-6xx.xx+ 12status current (as of 2026-07) 12arch Ampere
+    12code GAxxx 12process TSMC n7 (7nm) 12built 2020-2023 12pcie 12gen 1 12speed 2.5 GT/s 12lanes 16 12link-max
+    12gen 4 12speed 16 GT/s 12ports 12active DP-6,HDMI-A-2 12empty DP-4,DP-5,HDMI-A-3 12bus-ID 01:00.0
+    12chip-ID 10de:2206 12class-ID 0300
+  12Device-2 Advanced Micro Devices [AMD/ATI] Raphael 12vendor Gigabyte 12driver amdgpu 12v kernel
+    12arch RDNA-2 12code Navi-2x 12process TSMC n7 (7nm) 12built 2020-22 12pcie 12gen 4 12speed 16 GT/s 12lanes 16
+    12ports 12active none 12empty DP-1, DP-2, DP-3, HDMI-A-1, Writeback-1 12bus-ID 11:00.0
+    12chip-ID 1002:164e 12class-ID 0300 12temp 32.0 C
+  12Display wayland 12server X.org 12v 1.21.1.24 12with Xwayland 12v 24.1.13 12compositor Hyprland 12v 0.56.0
+    12driver 12X 12loaded nvidia 12gpu nv_platform,nvidia,nvidia-nvswitch 12display-ID 1
+  12Monitor-1 DP-6 12model L2 12serial <filter> 12built 2023 12res 1920x720 12dpi 158 12gamma 1.2
+    12size 309x115mm (12.17x4.53") 12diag 330mm (13") 12modes 12max 1920x720 12min 1280x720
+  12Monitor-2 HDMI-A-2 12model LG (GoldStar) TV SSCR2 12serial <filter> 12built 2024 12res 3840x2160 12dpi 61
+    12gamma 1.2 12size 1600x900mm (62.99x35.43") 12diag 1836mm (72.3") 12ratio 16:9 12modes 12max 3840x2160
+    12min 640x480
+  12API EGL 12v 1.5 12hw 12drv nvidia 12drv amd radeonsi 12platforms 12device 0 12drv nvidia 12device 2
+    12drv radeonsi 12device 3 12drv swrast 12gbm 12drv nvidia 12surfaceless 12drv nvidia 12wayland 12drv nvidia 12x11
+    12drv nvidia 12inactive device-1
+  12API OpenGL 12v 4.6.0 12compat-v 4.6 12vendor nvidia mesa 12v 610.43.03 12glx-v 1.4 12direct-render yes
+    12renderer NVIDIA GeForce RTX 3080/PCIe/SSE2 12memory 9.77 GiB
+  12Info 12Tools 12api eglinfo,glxinfo 12gpu nvidia-settings,nvidia-smi 12x11 xprop,xrandr
+12Audio:
+  12Device-1 NVIDIA GA102 High Definition Audio 12vendor Gigabyte 12driver snd_hda_intel 12v kernel 12pcie
+    12gen 4 12speed 16 GT/s 12lanes 16 12bus-ID 01:00.1 12chip-ID 10de:1aef 12class-ID 0403
+  12Device-2 Advanced Micro Devices [AMD/ATI] Radeon High Definition Audio 12driver snd_hda_intel
+    12v kernel 12pcie 12gen 4 12speed 16 GT/s 12lanes 16 12bus-ID 11:00.1 12chip-ID 1002:1640 12class-ID 0403
+  12Device-3 Advanced Micro Devices [AMD] Ryzen HD Audio 12vendor Gigabyte 12driver snd_hda_intel
+    12v kernel 12pcie 12gen 4 12speed 16 GT/s 12lanes 16 12bus-ID 11:00.6 12chip-ID 1022:15e3 12class-ID 0403
+  12Device-4 Texas Instruments PCM2902 Audio Codec 12driver hid-generic,snd-usb-audio,usbhid 12type USB
+    12rev 1.1 12speed 12 Mb/s 12lanes 1 12mode 1.1 12bus-ID 5-1:2 12chip-ID 08bb:2902 12class-ID 0300
+  12API ALSA 12v k7.1.4-arch1-1 12status kernel-api 12tools N/A
+  12Server-1 sndiod 12v N/A 12status off 12tools aucat,midicat,sndioctl
+  12Server-2 PipeWire 12v 1.6.8 12status active 12with 121 pipewire-pulse 12status active 122 wireplumber
+    12status active 123 pipewire-alsa 12type plugin 124 pw-jack 12type plugin 12tools pactl,pw-cat,pw-cli,wpctl
+12Network:
+  12Device-1 Mellanox MT27500 Family [ConnectX-3] 12driver mlx4_core 12v 4.0-0 12pcie 12gen 3 12speed 8 GT/s
+    12lanes 1 12link-max 12lanes 4 12port N/A 12bus-ID 06:00.0 12chip-ID 15b3:1003 12class-ID 0200
+  12IF enp6s0 12state down 12mac <filter>
+  12Device-2 MEDIATEK MT7922 802.11ax PCI Express Wireless Network Adapter 12driver mt7921e 12v kernel
+    12pcie 12gen 2 12speed 5 GT/s 12lanes 1 12bus-ID 07:00.0 12chip-ID 14c3:0616 12class-ID 0280
+  12IF wlan0 12state up 12mac <filter>
+  12Device-3 Realtek RTL8125 2.5GbE 12vendor Gigabyte 12driver r8169 12v kernel 12pcie 12gen 2 12speed 5 GT/s
+    12lanes 1 12port e000 12bus-ID 08:00.0 12chip-ID 10ec:8125 12class-ID 0200
+  12IF enp8s0 12state down 12mac <filter>
+  12IF-ID-1 br-1d518a420db5 12state down 12mac <filter>
+  12IF-ID-2 docker0 12state down 12mac <filter>
+  12Info 12services iwd, sshd, systemd-networkd, systemd-timesyncd
+12Bluetooth:
+  12Device-1 MediaTek Wireless_Device 12driver btusb 12v 0.8 12type USB 12rev 2.1 12speed 480 Mb/s 12lanes 1
+    12mode 2.0 12bus-ID 1-9:8 12chip-ID 0e8d:0616 12class-ID e001 12serial <filter>
+  12Report rfkill 12ID hci0 12rfk-id 0 12state up 12address see --recommends
+12Drives:
+  12Local Storage 12total 9.73 TiB 12used 2.01 TiB (20.6%)
+  12SMART Message Required tool smartctl not installed. Check --recommends
+  12ID-1 /dev/nvme0n1 12maj-min 259:11 12vendor TeamGroup 12model TM8FP4004T 12size 3.73 TiB 12block-size
+    12physical 512 B 12logical 512 B 12speed 31.6 Gb/s 12lanes 4 12tech SSD 12serial <filter> 12fw-rev VB421D65
+    12temp 32.9 C 12scheme GPT
+  12ID-2 /dev/nvme1n1 12maj-min 259:6 12vendor A-Data 12model SX8200PNP 12size 1.86 TiB 12block-size
+    12physical 512 B 12logical 512 B 12speed 31.6 Gb/s 12lanes 4 12tech SSD 12serial <filter> 12fw-rev 42AZS6AC
+    12temp 31.9 C 12scheme GPT
+  12ID-3 /dev/nvme2n1 12maj-min 259:0 12vendor Intel 12model SSDPEKNU020TZ 12size 1.86 TiB 12block-size
+    12physical 512 B 12logical 512 B 12speed 31.6 Gb/s 12lanes 4 12tech SSD 12serial <filter> 12fw-rev 002C
+    12temp 31.9 C 12scheme GPT
+  12ID-4 /dev/nvme3n1 12maj-min 259:5 12vendor Samsung 12model SSD 980 PRO 2TB 12size 1.82 TiB 12block-size
+    12physical 512 B 12logical 512 B 12speed 63.2 Gb/s 12lanes 4 12tech SSD 12serial <filter> 12fw-rev 5B2QGXA7
+    12temp 32.9 C 12scheme GPT
+  12ID-5 /dev/sda 12maj-min 8:0 12vendor Crucial 12model CT500MX500SSD1 12size 465.76 GiB 12block-size
+    12physical 512 B 12logical 512 B 12speed 6.0 Gb/s 12tech SSD 12serial <filter> 12fw-rev 023 12scheme GPT
+12Partition:
+  12ID-1 / 12raw-size 1.82 TiB 12size 1.82 TiB (100.00%) 12used 1.12 TiB (61.6%) 12fs btrfs 12dev /dev/dm-0
+    12maj-min 253:0 12mapped root
+  12ID-2 /boot 12raw-size 2 GiB 12size 2 GiB (99.80%) 12used 757.6 MiB (37.1%) 12fs vfat 12dev /dev/nvme3n1p1
+    12maj-min 259:7
+  12ID-3 /home 12raw-size 1.82 TiB 12size 1.82 TiB (100.00%) 12used 1.12 TiB (61.6%) 12fs btrfs
+    12dev /dev/dm-0 12maj-min 253:0 12mapped root
+  12ID-4 /var/log 12raw-size 1.82 TiB 12size 1.82 TiB (100.00%) 12used 1.12 TiB (61.6%) 12fs btrfs
+    12dev /dev/dm-0 12maj-min 253:0 12mapped root
+12Swap:
+  12Kernel 12swappiness 60 (default) 12cache-pressure 100 (default) 12zswap no
+  12ID-1 swap-1 12type zram 12size 4 GiB 12used 127.3 MiB (3.1%) 12priority 100 12comp zstd
+    12avail lzo-rle,lzo,lz4,lz4hc,deflate,842 12dev /dev/zram0
+12Sensors:
+  12System Temperatures 12cpu 55.8 C 12mobo 42.0 C 12gpu amdgpu 12temp 32.0 C
+  12Fan Speeds (rpm) N/A
+12Repos:
+  12Packages 12pm pacman 12pkgs 1566 12libs 371 12tools yay
+  12Active pacman repo servers in /etc/pacman.conf
+    121 https: //pkgs.omarchy.org/stable/$arch
+  12Active pacman repo servers in /etc/pacman.d/mirrorlist
+    121 https: //stable-mirror.omarchy.org/$repo/os/$arch
+12Info:
+  12Memory 12total 64 GiB 12note est. 12available 61.91 GiB 12used 6.81 GiB (11.0%)
+  12Processes 385 12Power 12uptime 26d 14h 44m 12states freeze,mem,disk 12suspend deep 12avail s2idle
+    12wakeups 0 12hibernate platform 12avail shutdown, reboot, suspend, test_resume 12image 24.64 GiB
+    12services power-profiles-daemon,upowerd 12Init systemd 12v 261 12default graphical 12tool systemctl
+  12Compilers 12clang 22.1.8 12gcc 16.1.1 12Client shell wrapper 12v 5.3.15-release 12inxi 3.3.41
+
+=========================================
+DMESG
+=========================================
+(skipped - --no-sudo flag used)
+
+=========================================
+JOURNALCTL (CURRENT BOOT, WARNINGS+ERRORS)
+=========================================
+Aug 03 22:08:20 omarchy kernel: virt/tdx: TDX not supported by the host platform
+Aug 03 22:08:20 omarchy kernel: ata1.00: supports DRM functions and may not be fully accessible
+Aug 03 22:08:20 omarchy kernel: ata1.00: supports DRM functions and may not be fully accessible
+Aug 03 22:08:20 omarchy kernel: sd 7:0:0:0: [sdb] Optimal transfer size 33553920 bytes not a multiple of preferred minimum block size (4096 bytes)
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: ...
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: ..
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: ..
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: ..
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:20 omarchy kernel: nvidia: loading out-of-tree module taints kernel.
+Aug 03 22:08:20 omarchy kernel: kvm_intel: VMX not supported by CPU 4
+Aug 03 22:08:20 omarchy kernel: 
+Aug 03 22:08:20 omarchy kernel: NVRM: loading NVIDIA UNIX Open Kernel Module for x86_64  610.43.03  Release Build  (root@omarchy)  
+Aug 03 22:08:20 omarchy kernel: VBoxNetAdp: Successfully started.
+Aug 03 22:08:20 omarchy kernel: VBoxNetFlt: Successfully started.
+Aug 03 22:08:20 omarchy systemd-udevd[606]: /etc/udev/rules.d/50-qmk.rules:71 Failed to resolve group 'plugdev', ignoring: Unknown group
+Aug 03 22:08:21 omarchy kernel: ACPI Warning: SystemIO range 0x0000000000000B00-0x0000000000000B08 conflicts with OpRegion 0x0000000000000B00-0x0000000000000B0F (\GSA1.SMBI) (20251212/utaddress-204)
+Aug 03 22:08:21 omarchy kernel: Bluetooth: hci0: HCI Enhanced Setup Synchronous Connection command is advertised, but not supported.
+Aug 03 22:08:22 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:22 omarchy systemd-networkd[610]: wlan0: Found matching .network file, based on potentially unpredictable interface name: /etc/systemd/network/20-wlan.network
+Aug 03 22:08:22 omarchy bootctl[915]:  Mount point '/boot' which backs the random seed file is world accessible, which is a security hole! 
+Aug 03 22:08:22 omarchy bootctl[915]: Random seed file '/boot/loader/random-seed' is world accessible, which is a security hole!
+Aug 03 22:08:24 omarchy kernel: Bluetooth: hci0: HCI Enhanced Setup Synchronous Connection command is advertised, but not supported.
+Aug 03 22:08:24 omarchy sddm-helper[1146]: gkr-pam: no password is available for user
+Aug 03 22:08:24 omarchy dbus-broker-launch[936]: Activation request for 'org.freedesktop.home1' failed: The systemd unit 'dbus-org.freedesktop.home1.service' could not be found.
+Aug 03 22:08:24 omarchy dbus-broker-launch[1190]: Service file '/usr/share/dbus-1/services/fr.emersion.mako.service' is not named after the D-Bus name 'org.freedesktop.Notifications'.
+Aug 03 22:08:24 omarchy sddm-helper[1146]: gkr-pam: couldn't unlock the login keyring.
+Aug 03 22:08:25 omarchy systemd[1161]: Configuration file /home/lonnie/.config/systemd/user/elephant.service is marked executable. Please remove executable permission bits. Proceeding anyway.
+Aug 03 22:08:26 omarchy kernel: ACPI Warning: SystemIO range 0x0000000000000A45-0x0000000000000A46 conflicts with OpRegion 0x0000000000000A45-0x0000000000000A46 (\GSA1.SIO1) (20251212/utaddress-204)
+Aug 03 22:08:26 omarchy coolercontrold[1049]: Failed to load module it87: modprobe: ERROR: could not insert 'it87': Device or resource busy
+Aug 03 22:08:26 omarchy coolercontrold[1049]: Python Environment Error: Python liquidctl system package not detected. If you want liquidctl device support, please make sure the liquidctl package is installed with your distribution's package manager. If not, you may disable liquidctl support to no longer see this message. liqctld exited with a non-zero exit code: 1
+Aug 03 22:08:26 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:27 omarchy remmina[2270]: gdk_display_get_primary_monitor: assertion 'GDK_IS_DISPLAY (display)' failed
+Aug 03 22:08:27 omarchy remmina[2270]: gdk_display_get_n_monitors: assertion 'GDK_IS_DISPLAY (display)' failed
+Aug 03 22:08:27 omarchy org.remmina.Remmina[2270]: gtk_widget_get_scale_factor: assertion 'GTK_IS_WIDGET (widget)' failed
+Aug 03 22:08:28 omarchy easyeffects[2293]: QDBusConnection: name 'org.freedesktop.portal.Desktop' had owner '' but we thought it was ':1.28'
+Aug 03 22:08:28 omarchy openrgb[2258]: QObject::connect: No such signal QPlatformNativeInterface::systemTrayWindowChanged(QScreen*)
+Aug 03 22:08:28 omarchy kernel: mlx4_en: 0000:06:00.0: Port 1: Using 8 TX rings
+Aug 03 22:08:28 omarchy kernel: mlx4_en: 0000:06:00.0: Port 1: Using 8 RX rings
+Aug 03 22:08:28 omarchy kernel: mlx4_en: 0000:06:00.0: Port 1: Initializing port
+Aug 03 22:08:30 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:32 omarchy StreamControlle[2259]: Theme parser error: style.css:399:19-27: Unknown name of pseudo-class
+Aug 03 22:08:34 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:38 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:42 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:46 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:50 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:54 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:08:58 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:02 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:06 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:11 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:15 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:19 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:23 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:27 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:31 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:35 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:39 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:43 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:47 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:51 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:55 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:09:59 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:03 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:07 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:11 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:15 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:19 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:23 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:27 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:31 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:36 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:40 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:44 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:48 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:52 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:10:56 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:00 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:04 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:08 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:12 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:16 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:24 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:28 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:32 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:36 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:40 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:44 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:48 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:52 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:11:56 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:01 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:05 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:09 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:13 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:17 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:21 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:25 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:29 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:33 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:37 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:41 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:45 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:49 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:53 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:12:57 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:01 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:05 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:09 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:13 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:17 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:21 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:26 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:30 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:34 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:38 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:42 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:46 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:50 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:54 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:13:58 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:02 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:06 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:10 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:14 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:18 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:22 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:26 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:30 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:34 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:38 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:42 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:47 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:51 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:55 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:14:59 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:03 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:07 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:11 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:15 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:19 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:23 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:27 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:31 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:35 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:39 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:43 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:47 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:50 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:15:50 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:15:50 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:15:50 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:15:50 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:15:51 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:55 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:15:59 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:03 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:08 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:12 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:16 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:24 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:28 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:32 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:36 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:40 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:44 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:48 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:52 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:16:56 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:00 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:04 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:08 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:12 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:16 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:24 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:28 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:33 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:37 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:41 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:45 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:49 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:53 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:17:57 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:01 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:05 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:09 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:13 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:17 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:21 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:22 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:18:22 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:18:25 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:29 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:33 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:37 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:41 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:45 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:49 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:53 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:18:58 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:02 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:06 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:10 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:14 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:18 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:22 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:26 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:30 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:34 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:38 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:42 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:46 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:50 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:54 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:19:58 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:02 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:06 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:10 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:14 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:18 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:23 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:27 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:31 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:35 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:39 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:43 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:47 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:51 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:55 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:20:59 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:03 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:07 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:11 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:12 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:21:12 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:21:12 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:21:13 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:21:13 omarchy easyeffects[2293]: pw_manager.cpp:274        Could not find a node related to alsa_card.pci-0000_01_00.1
+Aug 03 22:21:15 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:19 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:23 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:27 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:31 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:35 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:39 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:44 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:48 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:52 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:21:56 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:00 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:04 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:08 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:12 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:16 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:20 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:24 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:28 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:32 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:36 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:40 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:44 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:48 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:52 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:22:56 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:00 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:04 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:09 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:13 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:17 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:21 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:25 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:29 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:33 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:37 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:41 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:45 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:49 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:53 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:23:57 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:01 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:05 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:09 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:13 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:17 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:21 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:25 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:29 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:34 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:38 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:42 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:46 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:50 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:54 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:24:58 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:02 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:06 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:10 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:14 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:18 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:22 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:26 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:30 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:34 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:38 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:42 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:46 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:50 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:54 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:25:59 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:03 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:07 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:11 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:15 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:19 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:23 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:27 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:31 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:35 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:39 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:43 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:47 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:51 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:55 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:26:59 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:27:03 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:27:07 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:27:11 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?
+Aug 03 22:27:15 omarchy kernel: usb usb2-port2: Cannot enable. Maybe the USB cable is bad?

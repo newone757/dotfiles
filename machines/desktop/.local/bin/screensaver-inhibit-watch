@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+# Owns org.freedesktop.ScreenSaver and tracks Inhibit/UnInhibit calls.
+# Writes active inhibitor count to /tmp/screensaver_inhibit_count so
+# screensaver-inhibited can gate hypridle's on-timeout commands.
+
+import dbus
+import dbus.service
+import dbus.mainloop.glib
+from gi.repository import GLib
+import signal
+import sys
+
+STATE_FILE = "/tmp/screensaver_inhibit_count"
+
+
+class ScreenSaverService(dbus.service.Object):
+    def __init__(self, bus, path):
+        super().__init__(bus, path)
+        self._cookies = {}
+        self._next_cookie = 1
+        self._write(0)
+
+    def _write(self, count):
+        with open(STATE_FILE, "w") as f:
+            f.write(str(count))
+
+    def _count(self):
+        return len(self._cookies)
+
+    @dbus.service.method("org.freedesktop.ScreenSaver",
+                         in_signature="ss", out_signature="u")
+    def Inhibit(self, app_name, reason):
+        cookie = self._next_cookie
+        self._next_cookie += 1
+        self._cookies[cookie] = (str(app_name), str(reason))
+        self._write(self._count())
+        return dbus.UInt32(cookie)
+
+    @dbus.service.method("org.freedesktop.ScreenSaver",
+                         in_signature="u", out_signature="")
+    def UnInhibit(self, cookie):
+        self._cookies.pop(int(cookie), None)
+        self._write(self._count())
+
+
+def main():
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    bus = dbus.SessionBus()
+
+    try:
+        bus.request_name(
+            "org.freedesktop.ScreenSaver",
+            dbus.bus.NAME_FLAG_DO_NOT_QUEUE,
+        )
+    except dbus.DBusException as e:
+        print(f"Could not acquire org.freedesktop.ScreenSaver: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    ScreenSaverService(bus, "/org/freedesktop/ScreenSaver")
+
+    loop = GLib.MainLoop()
+    signal.signal(signal.SIGTERM, lambda *_: loop.quit())
+    signal.signal(signal.SIGINT, lambda *_: loop.quit())
+    loop.run()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,3 @@
+omarchy 3.8.4
+Hyprland 0.56.0 built from branch v0.56.0 at commit 36b2e0cfe0c6094dbc47bd42a437431315bb3087 clean (version: bump to 0.56.0).
+7.1.4-arch1-1

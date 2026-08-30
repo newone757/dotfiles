@@ -1,0 +1,170 @@
+mice:
+	Mouse at 5596873afcc0:
+		logitech-mx-master-1
+			default speed: 0.00000
+			scroll factor: -1.00
+	Mouse at 5596873c9dd0:
+		compx-2.4g-receiver-mouse
+			default speed: 0.00000
+			scroll factor: -1.00
+	Mouse at 5596873f2830:
+		compx-2.4g-receiver-consumer-control-1
+			default speed: 0.00000
+			scroll factor: -1.00
+	Mouse at 559687cd7c20:
+		stream-controller-os-plugin-1
+			default speed: 0.00000
+			scroll factor: -1.00
+	Mouse at 559687d93820:
+		stream-controller-os-plugin-3
+			default speed: 0.00000
+			scroll factor: -1.00
+	Mouse at 55968b7d3900:
+		apple-inc.-magic-trackpad
+			default speed: 0.00000
+			scroll factor: -1.00
+	Mouse at 55968b76ba00:
+		apple-inc.-magic-trackpad-1
+			default speed: 0.00000
+			scroll factor: -1.00
+	Mouse at 5596879c5630:
+		lofree-hyzen67@lofree-consumer-control-1
+			default speed: 0.00000
+			scroll factor: -1.00
+	Mouse at 5596879c5cf0:
+		lofree-hyzen67@lofree-mouse
+			default speed: 0.00000
+			scroll factor: -1.00
+
+
+Keyboards:
+	Keyboard at 559686ccf830:
+		logitech-mx-master
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 5596873b9d60:
+		compx-2.4g-receiver
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 5596873ca230:
+		compx-2.4g-receiver-consumer-control
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 5596873f2c90:
+		compx-2.4g-receiver-system-control
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 559687476af0:
+		burr-brown-from-ti---------------usb-audio-codec-
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 5596874b94c0:
+		video-bus
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 5596879d15c0:
+		power-button
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 559687a35920:
+		power-button-1
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 559687b89720:
+		stream-controller-os-plugin
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 559687d15080:
+		stream-controller-os-plugin-2
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 559687ba3da0:
+		lofree-hyzen67@lofree-consumer-control
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 559686ccfba0:
+		lofree-hyzen67@lofree
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 559686d97e40:
+		lofree-hyzen67@lofree-keyboard
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 559687953e40:
+		lofree-hyzen67@lofree-system-control
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: no
+	Keyboard at 559687db2f50:
+		hl-virtual-keyboard-fcitx5
+			rules: r "", m "", l "us", v "", o "compose:caps"
+			active layout index: 0
+			active keymap: English (US)
+			capsLock: no
+			numLock: yes
+			main: yes
+
+
+Tablets:
+
+
+Touch:
+
+
+Switches:
+
