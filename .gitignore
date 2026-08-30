@@ -12,3 +12,8 @@ machines/*/.local/lgpowercontrol/bscpylgtv/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Plaintext WiFi credentials — never commit
+**/iwd-credentials-backup/
+*.psk
+*.nmconnection
