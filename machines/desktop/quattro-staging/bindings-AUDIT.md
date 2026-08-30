@@ -57,19 +57,46 @@ they'll keep working as upstream evolves.
 
 ---
 
-## ⚠️ Collisions to decide (2)
+## ✅ Collisions — RESOLVED 2026-08-30
 
-**`SUPER+L`** — you use it for lock + TV off.
-Quattro binds it to *Toggle workspace layout* by default. Amusingly, that's
-exactly what you had rebound `SUPER+CTRL+L` to, so upstream came to your
-conclusion by a different route. Pick one; both are staged in `bindings.lua`
-with the alternative commented.
+| Key | Decision | Result |
+|---|---|---|
+| `SUPER+SHIFT+A` | **Claude wins** | unbind default, rebind to claude.ai. ChatGPT left unbound. |
+| `SUPER+W` / `SUPER+Q` | **`SUPER+Q` wins** | unbind Quattro's `SUPER+W`, close on `SUPER+Q`. |
+| `SUPER+L` | **Full stock** | Quattro's *Toggle workspace layout*. No override. |
+| `SUPER+CTRL+L` | **Full stock** | Quattro's *Lock system*. No override. |
+| `SUPER+SHIFT+T` | **Dropped** | use Quattro's `SUPER+CTRL+T` for Activity/btop. |
 
-**`SUPER+CTRL+L`** — you use it for workspace layout toggle.
-Quattro uses it for **lock**. If you keep your old override, you shadow the
-lock screen. Recommendation: drop your override entirely, use Quattro's
-`SUPER+L` for layout and `SUPER+CTRL+L` for lock, and put lock+TV-off on
-`SUPER+GRAVE` alone.
+Net: **3 overrides total** (`SHIFT+A`, `W`→`Q`, plus 3 additive bindings that
+collide with nothing). Down from ~30 lines of custom config.
+
+### The one consequence to handle
+
+Taking full stock on the L keys means **`SUPER+CTRL+L` is a plain lock that
+doesn't touch the TV.** So is every other lock path — idle timeout, the system
+menu, `omarchy system lock`.
+
+**Do not fix this with a keybinding override.** Fix it by driving TV power from
+the *lock event* instead of the keystroke, so all lock paths behave identically.
+That's what `lgpowercontrol-dbus-events.sh` already does — it listens on
+`org.freedesktop.ScreenSaver` and is compositor-independent, which is precisely
+why it stands a good chance of surviving Quattro untouched.
+
+This decision makes that D-Bus daemon **load-bearing rather than optional**. It
+is now the first thing to verify after upgrading:
+
+```bash
+# press SUPER+CTRL+L, then:
+journalctl -t lgpowercontrol-dbus-events -f
+```
+
+If the Quickshell lock doesn't emit ScreenSaver signals, the fallback is to poll
+`omarchy-hyprland-session-locked` from that same daemon. Either way the logic
+lives in one place, off the compositor — which is the architecture the whole
+upgrade has been pushing toward anyway.
+
+`SUPER+GRAVE` stays bound to an explicit lock + TV off as a fallback while you
+verify. It becomes redundant once the D-Bus path is confirmed.
 
 ---
 
