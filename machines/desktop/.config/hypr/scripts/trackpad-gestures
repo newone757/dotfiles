@@ -47,13 +47,22 @@ def fire_tab(action):
     _tab_last    = now
     _tab_accum_x = 0.0
     _tab_accum_y = 0.0
+    # Omarchy 4 "Quattro" routes `hyprctl dispatch` through Lua, so the 3.x
+    # string form (`sendshortcut 'CTRL, Tab, activewindow'`) is now a Lua syntax
+    # error and every gesture silently no-ops -- the daemon keeps running and
+    # nothing in its own log complains. The dispatcher is hl.dsp.send_shortcut
+    # and takes a table { mods, key, window? }.
     shortcuts = {
-        'next':  'CTRL, Tab, activewindow',
-        'prev':  'CTRL SHIFT, Tab, activewindow',
-        'close': 'CTRL, W, activewindow',
-        'new':   'CTRL, T, activewindow',
+        'next':  ('CTRL', 'Tab'),
+        'prev':  ('CTRL SHIFT', 'Tab'),
+        'close': ('CTRL', 'W'),
+        'new':   ('CTRL', 'T'),
     }
-    subprocess.Popen(['hyprctl', 'dispatch', 'sendshortcut', shortcuts[action]])
+    mods, key = shortcuts[action]
+    subprocess.Popen([
+        'hyprctl', 'dispatch',
+        'hl.dsp.send_shortcut({{ mods = "{0}", key = "{1}", window = "activewindow" }})'.format(mods, key),
+    ])
 
 
 def watch(pad):
