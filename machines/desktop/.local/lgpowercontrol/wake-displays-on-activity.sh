@@ -47,7 +47,7 @@ done <"$FIFO"
 kill "$LIBINPUT_PID" 2>/dev/null
 
 if is_locked; then
-    hyprctl dispatch dpms on DP-6
+    hyprctl dispatch 'hl.dsp.dpms({ action = "enable", monitor = "DP-6" })'
     omarchy-brightness-keyboard restore
     "$HOME/.local/lgpowercontrol/tv-on.sh"
 fi

@@ -106,7 +106,7 @@ tv_blank() {
   # Scope the DPMS to the secondary only. HDMI-A-2 is deliberately left alone:
   # the TV is still fully powered here, so cutting its HDMI signal makes it show
   # a "No Signal" banner instead of going quiet.
-  hyprctl dispatch dpms off "$SECONDARY" >/dev/null 2>&1
+  hyprctl dispatch "hl.dsp.dpms({ action = \"disable\", monitor = \"$SECONDARY\" })" >/dev/null 2>&1
 
   timeout 10 "$BSCPYLGTV" "$TV_IP" turn_screen_off >/dev/null 2>&1 ||
     log "WARN: turn_screen_off failed"
@@ -123,8 +123,37 @@ tv_deep_off() {
   log "deep idle -- powering TV off"
   exec 8>"$TV_STATE_LOCK"
   flock 8
-  timeout 10 "$BSCPYLGTV" "$TV_IP" power_off >/dev/null 2>&1 ||
-    log "WARN: power_off failed"
+
+  # Why this is noisy on purpose: from 2026-08-30 to 09-04 this fired four
+  # times and logged "power_off failed" every time, with no detail, while the
+  # TV stayed powered (it started nagging about screen maintenance). The old
+  # call discarded both stdout and stderr, so there was nothing to diagnose.
+  #
+  # Two candidate causes, indistinguishable without the real error:
+  #   1. power_off deliberately does NOT wait for a response ("response is
+  #      unreliable"), so runloop's following client.disconnect() can throw
+  #      against a TV that is already shutting down -- a non-zero exit after a
+  #      SUCCESSFUL power off.
+  #   2. The call never completes: connect retries (9 attempts) plus the
+  #      2s connect timeout can exceed the old `timeout 10`, killing it before
+  #      POWER_OFF is ever sent.
+  # Only (2) matches the TV staying on, but capture the evidence rather than
+  # guess. Timeout raised to 30s so a slow connect is no longer a false
+  # failure, and the state is re-read afterwards to record what actually
+  # happened.
+  local out rc state
+  out=$(timeout 30 "$BSCPYLGTV" "$TV_IP" power_off 2>&1)
+  rc=$?
+  if (( rc != 0 )); then
+    log "WARN: power_off exited $rc -- output: ${out:-<none>}"
+  else
+    log "power_off returned 0 -- output: ${out:-<none>}"
+  fi
+
+  sleep 5
+  state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>&1)
+  log "post power_off state: ${state:-<unreachable>}"
+
   flock -u 8
 }
 
@@ -133,7 +162,7 @@ tv_restore() {
   # Blocks until any in-flight blank finishes, so restore is always last.
   exec 8>"$TV_STATE_LOCK"
   flock 8
-  hyprctl dispatch dpms on "$SECONDARY" >/dev/null 2>&1
+  hyprctl dispatch "hl.dsp.dpms({ action = \"enable\", monitor = \"$SECONDARY\" })" >/dev/null 2>&1
   # tv-on.sh flocks and checks get_power_state itself, so it is safe to call
   # redundantly and picks the fast path (turn_screen_on) vs the slow one
   # (WoL + HDMI handshake) automatically.

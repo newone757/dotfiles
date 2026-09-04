@@ -44,7 +44,7 @@ omarchy-system-lock
 # stops blanking reliably.
 blank_after_settle() {
   sleep 3
-  hyprctl dispatch dpms off "$SECONDARY"
+  hyprctl dispatch "hl.dsp.dpms({ action = \"disable\", monitor = \"$SECONDARY\" })"
   timeout 10 "$BSCPYLGTV" "$TV_IP" turn_screen_off >/dev/null 2>&1
   # Watch for real input activity and wake both displays early.
   timeout 7200 "$HOME/.local/lgpowercontrol/wake-displays-on-activity.sh" &
