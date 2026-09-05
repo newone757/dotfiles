@@ -115,11 +115,36 @@ Item {
 
   // Stock opened a selector that set the ONE global background. Now the screen
   // that was double-clicked is what gets changed.
-  property string pendingSelectorScreen: ""
+  property double selectorStartedAt: 0
 
   function openSelectorFor(screenName) {
-    if (bgSwitchProc.running) return
-    pendingSelectorScreen = String(screenName || "")
+    var name = String(screenName || "")
+    if (!name) {
+      console.log("background: double-click with no screen name; ignoring")
+      return
+    }
+
+    if (bgSwitchProc.running) {
+      // A selector really can still be open, and swallowing the click is right
+      // then. But without an escape hatch a process that never reports exit
+      // leaves double-click dead forever with no visible cause, so give up on
+      // it after a while rather than silently ignoring every click.
+      var age = Date.now() - selectorStartedAt
+      if (age < 120000) {
+        console.log("background: selector already open (" + Math.round(age / 1000) + "s); ignoring click on " + name)
+        return
+      }
+      console.log("background: selector stuck for " + Math.round(age / 1000) + "s; restarting for " + name)
+      bgSwitchProc.running = false
+    }
+
+    // Assign the command imperatively instead of binding it to a property.
+    // As a binding it could still hold the previous (or empty) screen name at
+    // the moment `running` flips, launching the helper with a stale argument --
+    // and an empty one makes it exit with a usage error to a discarded stderr,
+    // which looks exactly like the double-click doing nothing.
+    bgSwitchProc.command = ["bash", root.pluginDir + "/set-monitor-background", name]
+    selectorStartedAt = Date.now()
     bgSwitchProc.running = true
   }
 
@@ -129,8 +154,17 @@ Item {
 
   Process {
     id: bgSwitchProc
-    command: ["bash", root.pluginDir + "/set-monitor-background", root.pendingSelectorScreen]
-    onExited: root.refreshBackground()
+    // command is assigned in openSelectorFor(), not bound -- see the note there.
+    stderr: StdioCollector {
+      onStreamFinished: {
+        var err = String(text || "").trim()
+        if (err) console.log("background: selector stderr: " + err)
+      }
+    }
+    onExited: function(exitCode) {
+      if (exitCode !== 0) console.log("background: selector exited " + exitCode)
+      root.refreshBackground()
+    }
   }
 
   // One line per override: "<screen>\t<absolute path>".
