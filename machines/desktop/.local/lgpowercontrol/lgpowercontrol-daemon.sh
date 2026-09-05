@@ -151,8 +151,21 @@ tv_deep_off() {
   fi
 
   sleep 5
-  state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>&1)
-  log "post power_off state: ${state:-<unreachable>}"
+  # An UNREACHABLE TV here means success: WebOS refuses the websocket while it
+  # shuts down, so the client raises ConnectionClosedError 1008 "Try Again Later
+  # (EWS)". Confirmed 2026-09-04 -- power_off returned 0 and this check then
+  # dumped a 20-line Python traceback into the journal for a power-off that had
+  # worked perfectly. Log the outcome, not the stack.
+  if state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>/dev/null); then
+    case "$state" in
+      *"'state': 'Active'"*)
+        log "WARN: TV still reports Active after power_off -- it did not power down" ;;
+      *)
+        log "post power_off state: $state" ;;
+    esac
+  else
+    log "TV unreachable after power_off, as expected when it powers down"
+  fi
 
   flock -u 8
 }
