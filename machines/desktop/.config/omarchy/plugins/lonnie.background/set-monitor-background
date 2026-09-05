@@ -1,0 +1,52 @@
+#!/bin/bash
+# Pick a wallpaper for ONE monitor.
+#
+# Called by Background.qml when you double-click the desktop, with the name of
+# the screen you double-clicked (e.g. DP-6). Stock Omarchy has a single global
+# background -- one symlink at ~/.local/state/omarchy/current/background, and a
+# background plugin whose per-screen windows all render that same one value.
+#
+# Overrides live beside it as one symlink per monitor:
+#   ~/.local/state/omarchy/backgrounds-by-monitor/<SCREEN>
+# A monitor with no symlink follows the global background, so themes keep
+# working untouched on every screen you have not deliberately overridden.
+
+set -uo pipefail
+
+SCREEN="${1:-}"
+[[ -n $SCREEN ]] || { echo "usage: set-monitor-background <screen-name>" >&2; exit 1; }
+
+STATE="$HOME/.local/state/omarchy"
+GLOBAL_LINK="$STATE/current/background"
+OVERRIDE_DIR="$STATE/backgrounds-by-monitor"
+OVERRIDE_LINK="$OVERRIDE_DIR/$SCREEN"
+
+mkdir -p "$OVERRIDE_DIR"
+
+theme_name=$(cat "$STATE/current/theme.name" 2>/dev/null)
+current=$(readlink -f "$OVERRIDE_LINK" 2>/dev/null || readlink -f "$GLOBAL_LINK" 2>/dev/null)
+
+# Same directory list as the Background entry in
+# ~/.config/omarchy/extensions/omarchy-menu.jsonc: theme backgrounds first,
+# then per-theme user backgrounds, then the personal library.
+selection=$(omarchy-menu-images \
+  --selected "$current" \
+  "$STATE/current/theme/backgrounds" \
+  "$HOME/.config/omarchy/backgrounds/$theme_name" \
+  "$HOME/Wallpapers")
+
+[[ -n $selection ]] || exit 0
+
+global_target=$(readlink -f "$GLOBAL_LINK" 2>/dev/null)
+selection_real=$(readlink -f "$selection" 2>/dev/null)
+
+if [[ -n $global_target && $selection_real == "$global_target" ]]; then
+  # Picking the image the global background already uses means "stop overriding
+  # this monitor" -- it goes back to following the theme.
+  rm -f "$OVERRIDE_LINK"
+else
+  ln -nsf "$selection_real" "$OVERRIDE_LINK"
+fi
+
+# Tell the running shell to re-read the override directory.
+omarchy-shell -q background refresh 2>/dev/null || true
