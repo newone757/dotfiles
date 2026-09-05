@@ -29,3 +29,10 @@ echo "Stowing machine config for '$MACHINE'..."
 stow --dir="$DOTFILES_DIR/machines" --target="$HOME" "$MACHINE"
 
 echo "Done. You may need to log out and back in for all changes to take effect."
+
+# Theme clones live outside the repo (they are upstream git repos) and must be
+# symlinked into ~/.config/omarchy/themes or Omarchy strips their .lua.
+if [[ -x "$DOTFILES_DIR/theme-overlays/restore-theme-repos.sh" ]]; then
+  echo "Restoring symlinked theme repos..."
+  "$DOTFILES_DIR/theme-overlays/restore-theme-repos.sh" || echo "  (skipped; re-run manually)"
+fi

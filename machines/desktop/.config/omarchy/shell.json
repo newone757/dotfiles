@@ -61,6 +61,16 @@
     "lock": 300,
     "screensaver": 150
   },
-  "plugins": [],
-  "version": 1
+  "plugins": [
+    {
+      "id": "lonnie.background"
+    }
+  ],
+  "version": 1,
+  "disabledPlugins": [
+    "omarchy.background"
+  ],
+  "cloneSourceRestores": [
+    "lonnie.background"
+  ]
 }
