@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Launch SpectraControl from a known-clean state.
+#
+# Two things bite this app on Hyprland, both fixed by starting fresh:
+#
+# 1. WEDGED CAPTURE SESSION. The app saves a portal restore token at
+#    ~/.config/casa.scode.SpectraControl/screencast_restore_token, and the
+#    portal has allow_token_by_default = true, so every launch silently
+#    restores the SAME session with no source picker. Once that session wedges
+#    (xdg-desktop-portal-hyprland spins on "Out of buffers" and delivers no
+#    frames, leaving the lights frozen on their last colours) relaunching the
+#    app cannot recover -- it just restores the broken session again. Deleting
+#    the token forces a new session; the source picker reappearing is the
+#    visible confirmation that it worked.
+#
+# 2. ORPHANED CHILDREN. Closing the window only sends the app to the tray. Its
+#    Go backend keeps port 8000, so a second launch gets a dead backend, and
+#    stray gst-launch pipelines keep hammering the portal for nodes that no
+#    longer exist. Clear them before starting.
+#
+# Cost: you pick the capture source on every launch. That is the trade for
+# never inheriting a broken session.
+#
+# Usage:
+#   spectracontrol-launch                 clean launch (what the menu runs)
+#   spectracontrol-launch --reset-portal  also restart the screencast portal,
+#                                         for when the portal itself is stuck
+#   spectracontrol-launch --status        report state, change nothing
+
+set -uo pipefail
+
+APPIMAGE="$HOME/Applications/SpectraControl.AppImage"
+TOKEN="$HOME/.config/casa.scode.SpectraControl/screencast_restore_token"
+
+status() {
+  echo "SpectraControl status"
+  echo "  processes:"
+  ps -eo pid=,args= | grep -E "spectra-control|spectractl|pipewiresrc" | grep -v grep | sed 's/^/    /' || echo "    none"
+  echo -n "  restore token: "; [[ -f $TOKEN ]] && echo "present (will restore previous session, no picker)" || echo "absent (next launch prompts for a source)"
+  echo -n "  portal buffer errors, last 30s: "
+  journalctl --user -u xdg-desktop-portal-hyprland --since "30 seconds ago" --no-pager 2>/dev/null | grep -cE "Out of buffers"
+}
+
+case "${1:-}" in
+  --status) status; exit 0 ;;
+esac
+
+[[ -x $APPIMAGE ]] || { echo "Not found: $APPIMAGE" >&2; exit 1; }
+
+# Stop the app, then its children. The backend and the gst-launch pipelines
+# outlive their parent, so killing the app alone is not enough.
+pkill -f "spectra-control"          2>/dev/null
+sleep 1
+pkill -f "gst-launch-1.0 -q pipewiresrc" 2>/dev/null
+pkill -f "gst-launch-1.0 -q pulsesrc"    2>/dev/null
+pkill -f "spectractl"               2>/dev/null
+sleep 1
+pkill -9 -f "spectractl"            2>/dev/null
+
+rm -f "$TOKEN"
+
+if [[ ${1:-} == "--reset-portal" ]]; then
+  # Heavier: drops every active screencast on the system, so only for when the
+  # portal itself is wedged rather than just this app's session.
+  systemctl --user restart xdg-desktop-portal-hyprland.service
+  sleep 3
+fi
+
+exec "$APPIMAGE"

@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=SpectraControl
+Comment=Hue Entertainment screen sync (starts a fresh capture session)
+Exec=/home/lonnie/.local/bin/spectracontrol-launch
+Icon=spectracontrol
+Terminal=false
+Categories=AudioVideo;
+StartupWMClass=Spectra-control
+Actions=ResetPortal;
+
+[Desktop Action ResetPortal]
+Name=Restart with portal reset (if capture is stuck)
+Exec=/home/lonnie/.local/bin/spectracontrol-launch --reset-portal
