@@ -57,6 +57,12 @@
     "position": "top",
     "transparent": false
   },
+  "cloneSourceRestores": [
+    "lonnie.background"
+  ],
+  "disabledPlugins": [
+    "omarchy.background"
+  ],
   "idle": {
     "lock": 300,
     "screensaver": 150
@@ -66,11 +72,5 @@
       "id": "lonnie.background"
     }
   ],
-  "version": 1,
-  "disabledPlugins": [
-    "omarchy.background"
-  ],
-  "cloneSourceRestores": [
-    "lonnie.background"
-  ]
+  "version": 1
 }
