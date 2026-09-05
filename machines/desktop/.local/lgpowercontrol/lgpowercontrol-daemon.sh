@@ -71,6 +71,11 @@ DEEP_AFTER_LOCK_SECS=3300
 # Quickshell lock if blanking becomes unreliable.
 BLANK_SETTLE_SECS=3
 
+# After input wakes the displays while the session is STILL locked, how long to
+# wait for an actual unlock before blanking again. Long enough to type a
+# password, short enough that a stray event does not leave the TV lit for hours.
+REBLANK_GRACE_SECS=90
+
 # Serializes blank vs restore. Both take this before touching TV power, so a
 # blank that is still settling cannot land after a restore has already run.
 TV_STATE_LOCK=/tmp/lgpowercontrol-tv-state.lock
@@ -85,38 +90,62 @@ is_locked() {
   [[ $? -eq 0 ]]
 }
 
-tv_blank() {
-  log "locked -- blanking panel (TV stays powered)"
-  sleep "$BLANK_SETTLE_SECS"
+# Blank the panel, then keep watching. If input wakes the displays while the
+# session is still locked and no unlock follows, blank again.
+#
+# Why the loop exists: under 3.8.4 hypridle owned a repeating idle timer, so a
+# wake that was not followed by an unlock simply timed out and re-blanked. This
+# daemon reacts to lock STATE TRANSITIONS instead, which covers every lock path
+# but fires only once -- so before this loop, a single stray input event
+# (walking past, a nudged mouse) woke the TV and left it showing the lock screen
+# indefinitely. Observed 2026-09-05: blanked 01:32:58, woken by input 01:47:45,
+# still sitting on the lock screen at 02:07 when the session was unlocked.
+tv_blank_loop() {
+  local first=1 waited
 
-  exec 8>"$TV_STATE_LOCK"
-  flock 8
+  while is_locked; do
+    if (( first )); then
+      log "locked -- blanking panel (TV stays powered)"
+      # Sending turn_screen_off while the lock surface is still configuring on
+      # HDMI-A-2 triggers a renegotiation that undoes the blank. Only needed on
+      # the first pass; later passes happen long after the lock is established.
+      sleep "$BLANK_SETTLE_SECS"
+      first=0
+    fi
 
-  # Re-check under the lock. A quick lock->unlock inside BLANK_SETTLE_SECS
-  # would otherwise let this backgrounded job blank the panel AFTER
-  # tv_restore already brought it back, leaving a black screen on an unlocked
-  # session and no event left to correct it. Observed 2026-08-30 with 1s of
-  # margin: lock 14:05:54, blank due 14:05:57, unlock 14:05:58.
-  if ! is_locked; then
-    log "blank aborted -- session unlocked during the ${BLANK_SETTLE_SECS}s settle"
+    exec 8>"$TV_STATE_LOCK"
+    flock 8
+    # Re-check under the lock: a quick lock->unlock inside the settle would
+    # otherwise blank the panel after tv_restore already ran.
+    if ! is_locked; then
+      log "blank aborted -- session unlocked during the ${BLANK_SETTLE_SECS}s settle"
+      flock -u 8
+      return
+    fi
+
+    # Scope the DPMS to the secondary only. HDMI-A-2 is deliberately left alone:
+    # the TV is still fully powered here, so cutting its HDMI signal makes it
+    # show a "No Signal" banner instead of going quiet.
+    hyprctl dispatch "hl.dsp.dpms({ action = \"disable\", monitor = \"$SECONDARY\" })" >/dev/null 2>&1
+    timeout 15 "$BSCPYLGTV" "$TV_IP" turn_screen_off >/dev/null 2>&1 ||
+      log "WARN: turn_screen_off failed"
     flock -u 8
-    return
-  fi
 
-  # Scope the DPMS to the secondary only. HDMI-A-2 is deliberately left alone:
-  # the TV is still fully powered here, so cutting its HDMI signal makes it show
-  # a "No Signal" banner instead of going quiet.
-  hyprctl dispatch "hl.dsp.dpms({ action = \"disable\", monitor = \"$SECONDARY\" })" >/dev/null 2>&1
+    # Blocks until real input arrives or the session unlocks. Hyprland
+    # suppresses wake-on-input for every output while an ext-session-lock is
+    # held; libinput reads raw evdev and bypasses that.
+    timeout 7200 "$HOME/.local/lgpowercontrol/wake-displays-on-activity.sh"
 
-  timeout 10 "$BSCPYLGTV" "$TV_IP" turn_screen_off >/dev/null 2>&1 ||
-    log "WARN: turn_screen_off failed"
+    is_locked || break
 
-  flock -u 8
-
-  # Wake both displays on the first real input, without waiting for a full
-  # unlock. Hyprland suppresses wake-on-input for every output while an
-  # ext-session-lock is held; libinput reads raw evdev and bypasses that.
-  timeout 7200 "$HOME/.local/lgpowercontrol/wake-displays-on-activity.sh" &
+    log "woken while still locked -- re-blanking in ${REBLANK_GRACE_SECS}s unless unlocked"
+    waited=0
+    while (( waited < REBLANK_GRACE_SECS )); do
+      sleep 5
+      waited=$(( waited + 5 ))
+      is_locked || break 2
+    done
+  done
 }
 
 tv_deep_off() {
@@ -196,7 +225,7 @@ while true; do
       locked=1
       locked_at=$(date +%s)
       escalated=0
-      tv_blank &
+      tv_blank_loop &
     elif (( ! escalated && DEEP_AFTER_LOCK_SECS > 0 )); then
       if (( $(date +%s) - locked_at >= DEEP_AFTER_LOCK_SECS )); then
         escalated=1
