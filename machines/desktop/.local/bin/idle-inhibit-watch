@@ -37,8 +37,14 @@ OWNER_FILE="$STATE_DIR/idle-inhibit-watch.owned"
 # names here; matched case-insensitively against the MPRIS bus name.
 EXCLUDE_PLAYERS='spotify|spotifyd|mpd|plasma-browser-integration|kdeconnect'
 
-# Window classes that count as "a game is running".
+# Window classes that count as "a game is running". Proton/Steam titles get
+# steam_app_<id> (verified against a live session), but NATIVE Linux games often
+# use their own class -- add them here if one slips through.
 GAME_CLASS_REGEX='^steam_app_[0-9]+|^gamescope|^lutris'
+
+# Steam wraps every launch, native or Proton, in a "reaper SteamLaunch" process,
+# so this catches games whose window class we would not recognise.
+GAME_PROC_REGEX='reaper SteamLaunch|gamescope'
 
 log() { echo "$*" | logger --tag idle-inhibit-watch; }
 
@@ -56,8 +62,15 @@ media_playing() {
 }
 
 game_running() {
-  hyprctl clients -j 2>/dev/null \
-    | jq -e --arg re "$GAME_CLASS_REGEX" 'any(.[]; .class | test($re))' >/dev/null 2>&1
+  # Window class first: cheap, and covers Proton titles.
+  if hyprctl clients -j 2>/dev/null \
+       | jq -e --arg re "$GAME_CLASS_REGEX" 'any(.[]; .class | test($re))' >/dev/null 2>&1; then
+    return 0
+  fi
+
+  # Fall back to Steam's launch wrapper, which is present for native games too
+  # regardless of what they call their window.
+  pgrep -f "$GAME_PROC_REGEX" >/dev/null 2>&1
 }
 
 should_inhibit() { media_playing || game_running; }
