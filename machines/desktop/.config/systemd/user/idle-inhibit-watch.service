@@ -1,0 +1,17 @@
+[Unit]
+Description=Hold off idle while media is playing or a game is running
+Documentation=man:omarchy(1)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/idle-inhibit-watch
+Restart=on-failure
+RestartSec=5
+
+# Needs the compositor socket for hyprctl and the session bus for MPRIS, both
+# of which come from the environment Hyprland imports at startup.
+
+[Install]
+WantedBy=graphical-session.target

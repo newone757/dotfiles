@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# Hold off the screensaver/lock while media is genuinely playing or a game is
+# running, and let the system idle normally otherwise.
+#
+# WHY NOT THE OBVIOUS APPROACH
+#
+# The conventional fix is to honour org.freedesktop.ScreenSaver inhibits over
+# D-Bus. That is what broke before (2026-05): Brave asserts a "Video Wake Lock"
+# for ANY media element, so Reddit autoplay, Google Slides and Canva all held
+# the screensaver off, and the machine never idled. The inhibit is also sticky
+# in ~123s chunks rather than tracking what is actually happening.
+#
+# So this does not trust what applications declare. It observes real state:
+#
+#   1. MPRIS PlaybackStatus == "Playing". This reflects actual playback and
+#      clears the moment you pause or the video ends. Silent/muted autoplay
+#      (the old false-positive source) does not create a media session at all,
+#      so it is excluded for free rather than by a heuristic.
+#   2. A running game window (class steam_app_<id>, or gamescope). Controllers
+#      are not seat input devices, so gamepad-only sessions never reset the
+#      compositor's idle timer -- this is the whole reason the screensaver used
+#      to fire mid-game.
+#
+# OWNERSHIP
+#
+# Stay-awake is shared with the SUPER+CTRL+I toggle. This only ever releases
+# what it enabled itself, tracked by OWNER_FILE, so a manual stay-awake set by
+# the user is never silently switched off.
+
+set -uo pipefail
+
+POLL_SECS=20
+STATE_DIR="$HOME/.local/state/omarchy"
+OWNER_FILE="$STATE_DIR/idle-inhibit-watch.owned"
+
+# Audio-only players: music does not need the screen kept on. Add or remove
+# names here; matched case-insensitively against the MPRIS bus name.
+EXCLUDE_PLAYERS='spotify|spotifyd|mpd|plasma-browser-integration|kdeconnect'
+
+# Window classes that count as "a game is running".
+GAME_CLASS_REGEX='^steam_app_[0-9]+|^gamescope|^lutris'
+
+log() { echo "$*" | logger --tag idle-inhibit-watch; }
+
+media_playing() {
+  local svc status
+  while read -r svc; do
+    [[ -n $svc ]] || continue
+    [[ $svc =~ $EXCLUDE_PLAYERS ]] && continue
+    status=$(busctl --user get-property "$svc" /org/mpris/MediaPlayer2 \
+               org.mpris.MediaPlayer2.Player PlaybackStatus 2>/dev/null \
+             | sed 's/^s //; s/"//g')
+    [[ $status == "Playing" ]] && return 0
+  done < <(busctl --user list --no-pager 2>/dev/null | awk '{print $1}' | grep -i '^org\.mpris\.MediaPlayer2\.' || true)
+  return 1
+}
+
+game_running() {
+  hyprctl clients -j 2>/dev/null \
+    | jq -e --arg re "$GAME_CLASS_REGEX" 'any(.[]; .class | test($re))' >/dev/null 2>&1
+}
+
+should_inhibit() { media_playing || game_running; }
+
+stay_awake_on() {
+  omarchy toggle idle status 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1
+}
+
+release_if_owned() {
+  if [[ -f $OWNER_FILE ]]; then
+    omarchy toggle idle allow-idle >/dev/null 2>&1
+    rm -f "$OWNER_FILE"
+    log "released stay-awake"
+  fi
+}
+
+trap 'release_if_owned; exit 0' TERM INT
+
+mkdir -p "$STATE_DIR"
+
+# A stay-awake left over from a previous run (killed, crashed, rebooted) would
+# otherwise keep the machine awake forever with nothing tracking it.
+if [[ -f $OWNER_FILE ]]; then
+  log "startup: clearing a stay-awake left owned by a previous run"
+  release_if_owned
+fi
+
+log "started (poll=${POLL_SECS}s)"
+
+while true; do
+  if should_inhibit; then
+    if ! stay_awake_on; then
+      omarchy toggle idle stay-awake >/dev/null 2>&1
+      touch "$OWNER_FILE"
+      log "media playing or game running -- holding off idle"
+    fi
+  else
+    # Only stand down if WE turned it on. A manual SUPER+CTRL+I stays put.
+    if [[ -f $OWNER_FILE ]]; then
+      if stay_awake_on; then
+        omarchy toggle idle allow-idle >/dev/null 2>&1
+        log "nothing playing -- allowing idle again"
+      fi
+      rm -f "$OWNER_FILE"
+    fi
+  fi
+  sleep "$POLL_SECS"
+done
