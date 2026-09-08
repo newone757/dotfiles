@@ -35,9 +35,17 @@ trap 'kill "$LIBINPUT_PID" 2>/dev/null; rm -f "$FIFO"' EXIT
 stdbuf -oL libinput debug-events >"$FIFO" 2>/dev/null &
 LIBINPUT_PID=$!
 
+# Only a MATCHED input event may wake the displays. The read loop also ends on
+# EOF -- if `libinput debug-events` dies for any reason the FIFO closes -- and
+# the wake block used to run then too, switching the panels and the TV back on
+# with nobody touching anything. Tracked explicitly rather than inferred from
+# the loop having ended.
+saw_input=0
+
 while IFS= read -r line; do
     case "$line" in
     *POINTER_MOTION*|*POINTER_BUTTON*|*KEYBOARD_KEY*|*POINTER_SCROLL*|*TOUCH_DOWN*|*GESTURE*)
+        saw_input=1
         break
         ;;
     esac
@@ -45,6 +53,11 @@ while IFS= read -r line; do
 done <"$FIFO"
 
 kill "$LIBINPUT_PID" 2>/dev/null
+
+if (( ! saw_input )); then
+    # Timed out, unlocked, or the event source went away. Nothing to wake for.
+    exit 0
+fi
 
 if is_locked; then
     hyprctl dispatch 'hl.dsp.dpms({ action = "enable", monitor = "DP-6" })'

@@ -134,9 +134,18 @@ tv_blank_loop() {
     # Blocks until real input arrives or the session unlocks. Hyprland
     # suppresses wake-on-input for every output while an ext-session-lock is
     # held; libinput reads raw evdev and bypasses that.
-    timeout 7200 "$HOME/.local/lgpowercontrol/wake-displays-on-activity.sh"
-
-    is_locked || break
+    # Re-arm the watcher for as long as the session stays locked and nothing
+    # actually wakes it. Exit code 124 means the 7200s timeout fired rather than
+    # input arriving: treating those alike logged a phantom "woken while still
+    # locked" every 7290s (7200 + the grace below) and re-blanked panels that
+    # were already blank, which risks turn_screen_off erroring on a screen that
+    # is already off. Re-arming here keeps the blank untouched.
+    while true; do
+      timeout 7200 "$HOME/.local/lgpowercontrol/wake-displays-on-activity.sh"
+      watcher_rc=$?
+      is_locked || break 2
+      (( watcher_rc == 124 )) || break
+    done
 
     log "woken while still locked -- re-blanking in ${REBLANK_GRACE_SECS}s unless unlocked"
     waited=0
