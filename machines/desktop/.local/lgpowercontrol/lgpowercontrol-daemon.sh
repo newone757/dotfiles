@@ -76,6 +76,9 @@ BLANK_SETTLE_SECS=3
 # password, short enough that a stray event does not leave the TV lit for hours.
 REBLANK_GRACE_SECS=90
 
+# How often to check, while locked, whether something turned the panel back on.
+BLANK_POLL_SECS=5
+
 # Serializes blank vs restore. Both take this before touching TV power, so a
 # blank that is still settling cannot land after a restore has already run.
 TV_STATE_LOCK=/tmp/lgpowercontrol-tv-state.lock
@@ -90,70 +93,84 @@ is_locked() {
   [[ $? -eq 0 ]]
 }
 
-# Blank the panel, then keep watching. If input wakes the displays while the
-# session is still locked and no unlock follows, blank again.
+# Keep the displays blanked for as long as the session is locked.
 #
-# Why the loop exists: under 3.8.4 hypridle owned a repeating idle timer, so a
-# wake that was not followed by an unlock simply timed out and re-blanked. This
-# daemon reacts to lock STATE TRANSITIONS instead, which covers every lock path
-# but fires only once -- so before this loop, a single stray input event
-# (walking past, a nudged mouse) woke the TV and left it showing the lock screen
-# indefinitely. Observed 2026-09-05: blanked 01:32:58, woken by input 01:47:45,
-# still sitting on the lock screen at 02:07 when the session was unlocked.
+# WHY THIS RECONCILES STATE RATHER THAN WATCHING FOR INPUT
+#
+# The previous version blanked once, then waited on
+# wake-displays-on-activity.sh (a libinput watcher) to tell it the displays had
+# woken. That assumed this daemon was the only thing that could turn a display
+# back on while locked. It is not: Quattro's own idle service reacts to activity
+# by running `omarchy-system-wake`, which calls `omarchy-brightness-display on`.
+#
+# When the shell woke the displays but our watcher did not see the same event,
+# nothing re-blanked and the panel sat lit on the lock screen indefinitely --
+# observed 2026-09-10, DP-6 on for hours with the shell logging
+# "idle-monitor: active" + "process-start: wake" at 16:30 and 17:42 while this
+# daemon logged nothing at all.
+#
+# So instead of trying to observe every possible waker, poll the thing we
+# actually care about: is the panel on while the session is locked? That covers
+# the shell, our own scripts, and anything else, without having to know about
+# them.
+panel_is_on() {
+  hyprctl monitors -j 2>/dev/null \
+    | jq -e --arg m "$SECONDARY" 'any(.[]; .name == $m and .dpmsStatus == true)' >/dev/null 2>&1
+}
+
+do_blank() {
+  exec 8>"$TV_STATE_LOCK"
+  flock 8
+
+  if ! is_locked; then
+    flock -u 8
+    return 1
+  fi
+
+  # Scope the DPMS to the secondary only. HDMI-A-2 is deliberately left alone:
+  # the TV is still fully powered here, so cutting its HDMI signal makes it show
+  # a "No Signal" banner instead of going quiet.
+  hyprctl dispatch "hl.dsp.dpms({ action = \"disable\", monitor = \"$SECONDARY\" })" >/dev/null 2>&1
+  timeout 15 "$BSCPYLGTV" "$TV_IP" turn_screen_off >/dev/null 2>&1 ||
+    log "WARN: turn_screen_off failed"
+
+  flock -u 8
+  return 0
+}
+
 tv_blank_loop() {
-  local first=1 waited
+  local awake_since=0 now
+
+  log "locked -- blanking panel (TV stays powered)"
+
+  # Sending turn_screen_off while the lock surface is still configuring on
+  # HDMI-A-2 triggers a renegotiation that undoes the blank.
+  sleep "$BLANK_SETTLE_SECS"
+
+  if ! do_blank; then
+    log "blank aborted -- session unlocked during the ${BLANK_SETTLE_SECS}s settle"
+    return
+  fi
 
   while is_locked; do
-    if (( first )); then
-      log "locked -- blanking panel (TV stays powered)"
-      # Sending turn_screen_off while the lock surface is still configuring on
-      # HDMI-A-2 triggers a renegotiation that undoes the blank. Only needed on
-      # the first pass; later passes happen long after the lock is established.
-      sleep "$BLANK_SETTLE_SECS"
-      first=0
+    sleep "$BLANK_POLL_SECS"
+    is_locked || break
+
+    if panel_is_on; then
+      if (( awake_since == 0 )); then
+        awake_since=$(date +%s)
+        log "panel woke while still locked -- re-blanking in ${REBLANK_GRACE_SECS}s unless unlocked"
+        # The shell turns the panel back on but knows nothing about the TV, so
+        # bring the TV screen back too -- otherwise there is a lock screen on
+        # DP-6 and a black TV to type the password into.
+        "$HOME/.local/lgpowercontrol/tv-on.sh" >/dev/null 2>&1 &
+      elif (( $(date +%s) - awake_since >= REBLANK_GRACE_SECS )); then
+        do_blank && log "re-blanked"
+        awake_since=0
+      fi
+    else
+      awake_since=0
     fi
-
-    exec 8>"$TV_STATE_LOCK"
-    flock 8
-    # Re-check under the lock: a quick lock->unlock inside the settle would
-    # otherwise blank the panel after tv_restore already ran.
-    if ! is_locked; then
-      log "blank aborted -- session unlocked during the ${BLANK_SETTLE_SECS}s settle"
-      flock -u 8
-      return
-    fi
-
-    # Scope the DPMS to the secondary only. HDMI-A-2 is deliberately left alone:
-    # the TV is still fully powered here, so cutting its HDMI signal makes it
-    # show a "No Signal" banner instead of going quiet.
-    hyprctl dispatch "hl.dsp.dpms({ action = \"disable\", monitor = \"$SECONDARY\" })" >/dev/null 2>&1
-    timeout 15 "$BSCPYLGTV" "$TV_IP" turn_screen_off >/dev/null 2>&1 ||
-      log "WARN: turn_screen_off failed"
-    flock -u 8
-
-    # Blocks until real input arrives or the session unlocks. Hyprland
-    # suppresses wake-on-input for every output while an ext-session-lock is
-    # held; libinput reads raw evdev and bypasses that.
-    # Re-arm the watcher for as long as the session stays locked and nothing
-    # actually wakes it. Exit code 124 means the 7200s timeout fired rather than
-    # input arriving: treating those alike logged a phantom "woken while still
-    # locked" every 7290s (7200 + the grace below) and re-blanked panels that
-    # were already blank, which risks turn_screen_off erroring on a screen that
-    # is already off. Re-arming here keeps the blank untouched.
-    while true; do
-      timeout 7200 "$HOME/.local/lgpowercontrol/wake-displays-on-activity.sh"
-      watcher_rc=$?
-      is_locked || break 2
-      (( watcher_rc == 124 )) || break
-    done
-
-    log "woken while still locked -- re-blanking in ${REBLANK_GRACE_SECS}s unless unlocked"
-    waited=0
-    while (( waited < REBLANK_GRACE_SECS )); do
-      sleep 5
-      waited=$(( waited + 5 ))
-      is_locked || break 2
-    done
   done
 }
 
