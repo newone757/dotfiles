@@ -5,7 +5,7 @@
 hl.env("GDK_SCALE", "1")
 
 -- Fallback for anything not named below.
-hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 
 -- LG TV, primary, 4K120.
 hl.monitor({ output = "HDMI-A-2", mode = "3840x2160@120", position = "0x0", scale = 1 })

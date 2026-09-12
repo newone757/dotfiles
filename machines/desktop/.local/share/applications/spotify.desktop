@@ -1,0 +1,20 @@
+[Desktop Entry]
+Type=Application
+Name=Spotify
+GenericName=Music Player
+Comment=Music streaming (device scale pinned — see below)
+Icon=spotify
+Exec=spotify --force-device-scale-factor=1 --uri=%u
+TryExec=spotify
+Terminal=false
+MimeType=x-scheme-handler/spotify;
+Categories=Audio;Music;Player;AudioVideo;
+StartupWMClass=Spotify
+StartupNotify=false
+
+# Spotify runs under XWayland and picks its device scale factor from what
+# XWayland reports about the displays. DP-6 advertises 1920x720 over 310x120mm,
+# which works out to ~157 DPI -- over Chromium's HiDPI threshold -- so Spotify
+# rendered its entire UI at 2x while native-Wayland apps (Brave) on the same
+# screen stayed at 1x. Pinning the factor to 1 keeps it matched to everything
+# else. Adjust the number if a future display layout wants something different.
