@@ -79,6 +79,12 @@ REBLANK_GRACE_SECS=90
 # How often to check, while locked, whether something turned the panel back on.
 BLANK_POLL_SECS=5
 
+# How often, while locked and believing the screen is blanked, to ask the TV
+# what its screen is ACTUALLY doing. Every failure so far that left the panel
+# lit came from event logic being subtly wrong, so this checks the device
+# itself rather than trusting our own bookkeeping. One WebOS query per interval.
+TV_VERIFY_SECS=300
+
 # Serializes blank vs restore. Both take this before touching TV power, so a
 # blank that is still settling cannot land after a restore has already run.
 TV_STATE_LOCK=/tmp/lgpowercontrol-tv-state.lock
@@ -139,7 +145,21 @@ do_blank() {
 }
 
 tv_blank_loop() {
-  local awake_since=0 now
+  # tv_awake is STICKY on purpose. panel_is_on only reports DP-6's DPMS state,
+  # but the action taken on a wake (tv-on.sh) turns the TV on -- a different
+  # device whose screen state DPMS does not describe at all. Resetting on
+  # panel_is_on alone let the obligation to re-blank evaporate:
+  #
+  #   2026-09-15 04:07  deep idle -- TV powered off
+  #   2026-09-15 10:14  panel woke -> tv-on.sh ran, TV back ON, 90s timer armed
+  #                     DP-6 went dark again within the grace, timer reset,
+  #                     do_blank never ran, turn_screen_off never sent
+  #   ...               TV sat lit on the lock screen until 11:05
+  #
+  # Once we wake the TV we owe it a blank, and only an unlock or an actual
+  # re-blank may clear that debt.
+  local awake_since=0 tv_awake=0 last_verify=0 state
+  last_verify=$(date +%s)
 
   log "locked -- blanking panel (TV stays powered)"
 
@@ -156,20 +176,43 @@ tv_blank_loop() {
     sleep "$BLANK_POLL_SECS"
     is_locked || break
 
-    if panel_is_on; then
+    if panel_is_on || (( tv_awake )); then
       if (( awake_since == 0 )); then
         awake_since=$(date +%s)
+        tv_awake=1
         log "panel woke while still locked -- re-blanking in ${REBLANK_GRACE_SECS}s unless unlocked"
         # The shell turns the panel back on but knows nothing about the TV, so
         # bring the TV screen back too -- otherwise there is a lock screen on
         # DP-6 and a black TV to type the password into.
         "$HOME/.local/lgpowercontrol/tv-on.sh" >/dev/null 2>&1 &
       elif (( $(date +%s) - awake_since >= REBLANK_GRACE_SECS )); then
-        do_blank && log "re-blanked"
-        awake_since=0
+        if do_blank; then
+          log "re-blanked"
+          awake_since=0
+          tv_awake=0
+        else
+          # Unlocked mid-blank; the main loop's tv_restore owns it now.
+          break
+        fi
       fi
     else
       awake_since=0
+
+      # Safety net: we believe the screen is off, so confirm it with the TV.
+      # Three separate bugs have now left this panel lit overnight (a phantom
+      # wake, a watcher that missed the shell's own wake, and a re-blank
+      # obligation that evaporated), each a different hole in the event logic.
+      # This does not care why the screen is on -- only that it should not be.
+      if (( $(date +%s) - last_verify >= TV_VERIFY_SECS )); then
+        last_verify=$(date +%s)
+        state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>/dev/null)
+        case "$state" in
+          *"'state': 'Active'"*)
+            log "VERIFY: TV screen is on while locked -- blanking again"
+            do_blank && log "re-blanked (verify)"
+            ;;
+        esac
+      fi
     fi
   done
 }
