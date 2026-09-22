@@ -222,47 +222,61 @@ tv_deep_off() {
   exec 8>"$TV_STATE_LOCK"
   flock 8
 
-  # Why this is noisy on purpose: from 2026-08-30 to 09-04 this fired four
-  # times and logged "power_off failed" every time, with no detail, while the
-  # TV stayed powered (it started nagging about screen maintenance). The old
-  # call discarded both stdout and stderr, so there was nothing to diagnose.
-  #
-  # Two candidate causes, indistinguishable without the real error:
-  #   1. power_off deliberately does NOT wait for a response ("response is
-  #      unreliable"), so runloop's following client.disconnect() can throw
-  #      against a TV that is already shutting down -- a non-zero exit after a
-  #      SUCCESSFUL power off.
-  #   2. The call never completes: connect retries (9 attempts) plus the
-  #      2s connect timeout can exceed the old `timeout 10`, killing it before
-  #      POWER_OFF is ever sent.
-  # Only (2) matches the TV staying on, but capture the evidence rather than
-  # guess. Timeout raised to 30s so a slow connect is no longer a false
-  # failure, and the state is re-read afterwards to record what actually
-  # happened.
-  local out rc state
-  out=$(timeout 30 "$BSCPYLGTV" "$TV_IP" power_off 2>&1)
-  rc=$?
+  local out rc attempt state
+
+  # What state is it actually in before we try? Every previous diagnosis here
+  # was wrong because this was not recorded.
+  state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>/dev/null) \
+    && log "pre power_off state: $state" \
+    || log "pre power_off: TV not reachable"
+
+  # WebOS answers "Try Again Later (EWS)" and closes the socket with 1008 when
+  # it is not ready to serve a new client. Observed failing on every deep-off
+  # from 2026-09-17 onward, with the connection refused before power_off was
+  # ever sent -- so the TV never powered down, kept accumulating panel hours,
+  # and started prompting for OLED pixel refresh on unlock. It is literally
+  # asking us to retry, so retry.
+  rc=1
+  for attempt in 1 2 3; do
+    out=$(timeout 30 "$BSCPYLGTV" "$TV_IP" power_off 2>&1)
+    rc=$?
+    (( rc == 0 )) && break
+    log "power_off attempt $attempt failed; retrying in 5s"
+    sleep 5
+  done
+
   if (( rc != 0 )); then
-    log "WARN: power_off exited $rc -- output: ${out:-<none>}"
-  else
-    log "power_off returned 0 -- output: ${out:-<none>}"
+    # Last resort: WoL brings the WebOS service back to a state where it will
+    # accept a client, then power it off for real. Only reached when the plain
+    # retries could not connect at all.
+    log "power_off still failing -- waking the service with WoL, then retrying"
+    wakeonlan -i "$TV_IP" "$TV_MAC" >/dev/null 2>&1
+    sleep 10
+    out=$(timeout 30 "$BSCPYLGTV" "$TV_IP" power_off 2>&1)
+    rc=$?
   fi
 
   sleep 5
-  # An UNREACHABLE TV here means success: WebOS refuses the websocket while it
-  # shuts down, so the client raises ConnectionClosedError 1008 "Try Again Later
-  # (EWS)". Confirmed 2026-09-04 -- power_off returned 0 and this check then
-  # dumped a 20-line Python traceback into the journal for a power-off that had
-  # worked perfectly. Log the outcome, not the stack.
   if state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>/dev/null); then
     case "$state" in
       *"'state': 'Active'"*)
-        log "WARN: TV still reports Active after power_off -- it did not power down" ;;
+        # Reachable and still lit. Powering off did not take, so at minimum get
+        # the pixels dark rather than leave a bright panel on the lock screen.
+        log "WARN: TV still Active after power_off -- falling back to turn_screen_off"
+        timeout 15 "$BSCPYLGTV" "$TV_IP" turn_screen_off >/dev/null 2>&1 ||
+          log "WARN: turn_screen_off fallback also failed"
+        ;;
       *)
-        log "post power_off state: $state" ;;
+        log "post power_off state: $state"
+        ;;
     esac
+  elif (( rc == 0 )); then
+    log "TV unreachable after a successful power_off, as expected when it powers down"
   else
-    log "TV unreachable after power_off, as expected when it powers down"
+    # Do NOT call this success. An unreachable TV looks identical whether it
+    # powered down or is merely refusing connections with the screen off, and
+    # reporting the latter as success is what hid this bug for days.
+    log "WARN: power_off failed AND the TV is unreachable -- power state unknown"
   fi
 
   flock -u 8

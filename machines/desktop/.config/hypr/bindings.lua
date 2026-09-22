@@ -78,3 +78,12 @@ o.bind("SUPER + GRAVE", "Lock + TV off", "~/.local/lgpowercontrol/lock-and-blank
 --
 -- The trailing "Alt+Scroll to cycle browser tabs" comment in the old
 -- bindings.conf had no binding under it. Nothing to port.
+
+------------------------------------------------------------------------------
+-- 5. Screenshot on SUPER+SHIFT+S
+------------------------------------------------------------------------------
+-- Matches the muscle memory from the pre-Quattro setup. Quattro binds this
+-- chord to Google Maps by default (applications.lua), so unbind that first.
+-- PRINT keeps working -- this is an addition, not a move.
+hl.unbind("SUPER + SHIFT + S")
+o.bind("SUPER + SHIFT + S", "Screenshot", "omarchy-capture-screenshot")
