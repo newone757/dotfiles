@@ -28,7 +28,7 @@
 # STAGE MAPPING vs the old hypridle config
 #
 #   hypridle 152s  lock + turn_screen_off   ->  on lock transition (below)
-#   hypridle 3600s lock + power_off         ->  DEEP_AFTER_LOCK_SECS (below)
+#   hypridle 3600s lock + power_off         ->  DEEP_AFTER_DARK_SECS (below)
 #   hypridle on-resume                      ->  on unlock transition (below)
 #
 # The old screensaver listener (150s) needs nothing here — Quattro's shell owns
@@ -59,10 +59,10 @@ BSCPYLGTV="$HOME/.local/lgpowercontrol/bscpylgtv/bin/bscpylgtvcommand"
 POLL_SECS=2
 
 # Seconds after LOCK before escalating from "panel blanked, TV still powered"
-# to a real power_off. The old config escalated at 3600s of IDLE; since lock now
-# happens at shell.json's `lock` value, this is (3600 - lock_timeout). With the
-# default lock of 300s that's 3300. Set to 0 to disable escalation entirely.
-DEEP_AFTER_LOCK_SECS=3300
+# to a real power_off. Total target is 3600s of idle; blanking happens at
+# shell.json's `idle.screensaver` (300s), so this is 3600 - 300 = 3300.
+# If you change idle.screensaver, re-derive this. 0 disables escalation.
+DEEP_AFTER_DARK_SECS=3300
 
 # Delay between the lock appearing and blanking the panel. Sending
 # turn_screen_off while the lock surface is still configuring on HDMI-A-2
@@ -84,6 +84,15 @@ BLANK_POLL_SECS=5
 # lit came from event logic being subtly wrong, so this checks the device
 # itself rather than trusting our own bookkeeping. One WebOS query per interval.
 TV_VERIFY_SECS=300
+STREAM_VERIFY_SECS=60
+
+# Present while a Moonlight stream found the displays dark: they stay dark for
+# the rest of the stream AND after it ends, until real input at this desk.
+HOLD_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-hold"
+
+# Last idle/active reading from activity-monitor/shell.qml (3s threshold).
+ACTIVITY_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-activity"
+BLANK_TV_FAILED=0
 
 # Serializes blank vs restore. Both take this before touching TV power, so a
 # blank that is still settling cannot land after a restore has already run.
@@ -97,6 +106,46 @@ log() { echo "$*" | logger --tag lgpowercontrol-daemon; }
 is_locked() {
   omarchy-hyprland-session-locked
   [[ $? -eq 0 ]]
+}
+
+# The shell's own IdleMonitor (timeout = idle.screensaver in shell.json, since
+# lock is pushed out to ~25 days). Respects inhibitors, so a browser Video Wake
+# Lock or a game holding idle-inhibit keeps the TV lit, same as before.
+is_idle() {
+  [[ $(omarchy-shell idle status 2>/dev/null | jq -r '.idle' 2>/dev/null) == true ]]
+}
+
+# Displays should be dark when idle OR manually locked.
+#
+# 2026-10-17: lock and screensaver were turned off for Moonlight -- a locked
+# session needs a password typed on devices with no keyboard. Blanking now
+# keys off idle; a manual lock (SUPER+CTRL+L) still blanks immediately.
+# A Moonlight session is running (sunshine-stream-begin/-end in ~/.local/bin).
+# Requires BOTH the flag file and the headless output: a stale flag left by a
+# stream that died without running -end must never keep the TV dark while
+# someone is sitting at it.
+is_streaming() {
+  [[ -e "$XDG_RUNTIME_DIR/sunshine-streaming" ]] &&
+    hyprctl monitors -j 2>/dev/null | jq -e 'any(.[]; .name == "sunshine")' >/dev/null 2>&1
+}
+
+# Displays should be dark when idle, manually locked, or held dark.
+#
+# Streaming must not change the physical displays in EITHER direction: dark
+# when a stream starts -> dark until someone touches this PC (not "until the
+# stream ends"); lit when it starts -> left alone. Stream input is ordinary
+# input to the shell, so the dark case needs the hold, otherwise the first
+# Moonlight keypress would light the TV in an empty room.
+#
+# Known limit: displays lit at stream start stay lit for the whole stream,
+# since stream input keeps resetting idle and cannot be told apart from local
+# input without raw evdev access (user is not in `input`).
+is_held() {
+  [[ -e "$HOLD_FILE" ]]
+}
+
+is_dark() {
+  is_locked || is_idle || is_held
 }
 
 # Keep the displays blanked for as long as the session is locked.
@@ -128,7 +177,7 @@ do_blank() {
   exec 8>"$TV_STATE_LOCK"
   flock 8
 
-  if ! is_locked; then
+  if ! is_dark; then
     flock -u 8
     return 1
   fi
@@ -137,8 +186,23 @@ do_blank() {
   # the TV is still fully powered here, so cutting its HDMI signal makes it show
   # a "No Signal" banner instead of going quiet.
   hyprctl dispatch "hl.dsp.dpms({ action = \"disable\", monitor = \"$SECONDARY\" })" >/dev/null 2>&1
-  timeout 15 "$BSCPYLGTV" "$TV_IP" turn_screen_off >/dev/null 2>&1 ||
-    log "WARN: turn_screen_off failed"
+  BLANK_TV_FAILED=0
+  local out state
+  if ! out=$(timeout 15 "$BSCPYLGTV" "$TV_IP" turn_screen_off 2>&1); then
+    # turn_screen_off is NOT idempotent (same as turn_screen_on, see tv-on.sh):
+    # it errors when the screen is already off. Treating that as a failure kept
+    # the held-dark loop retrying every 5s for a whole stream -- 2026-10-17
+    # 16:03-16:46, 485 "failures" while the TV reported 'Screen Off' -- so ask
+    # the TV before calling it one.
+    state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>/dev/null)
+    case "$state" in
+      *"'state': 'Screen Off'"*) ;;
+      *)
+        BLANK_TV_FAILED=1
+        log "WARN: turn_screen_off failed (state: ${state:-unreachable}; ${out##*$'\n'})"
+        ;;
+    esac
+  fi
 
   flock -u 8
   return 0
@@ -158,23 +222,38 @@ tv_blank_loop() {
   #
   # Once we wake the TV we owe it a blank, and only an unlock or an actual
   # re-blank may clear that debt.
-  local awake_since=0 tv_awake=0 last_verify=0 state
+  local awake_since=0 tv_awake=0 last_verify=0 state verify_every
   last_verify=$(date +%s)
 
-  log "locked -- blanking panel (TV stays powered)"
+  log "idle/locked -- blanking panel (TV stays powered)"
 
   # Sending turn_screen_off while the lock surface is still configuring on
   # HDMI-A-2 triggers a renegotiation that undoes the blank.
   sleep "$BLANK_SETTLE_SECS"
 
   if ! do_blank; then
-    log "blank aborted -- session unlocked during the ${BLANK_SETTLE_SECS}s settle"
+    log "blank aborted -- activity/unlock during the ${BLANK_SETTLE_SECS}s settle"
     return
   fi
 
-  while is_locked; do
+  while is_dark; do
     sleep "$BLANK_POLL_SECS"
-    is_locked || break
+    is_dark || break
+
+    # While held, the shell's own wake (omarchy-system-wake on activity)
+    # turns DP-6 back on in response to STREAM input. Nobody is at the desk:
+    # put it straight back out instead of waking the TV for the 90s grace.
+    if is_held && { panel_is_on || (( tv_awake )); }; then
+      log "panel woke while held dark -- re-blanking"
+      do_blank
+      awake_since=0
+      # Starting a stream adds the headless output, and that modeset
+      # renegotiates HDMI -- the TV lights up and is unresponsive to WebOS for
+      # a while (2026-10-17: lit 13:52-13:56 until the 5-min verify caught
+      # it). Keep the debt and retry next pass until the TV takes it.
+      tv_awake=$BLANK_TV_FAILED
+      continue
+    fi
 
     if panel_is_on || (( tv_awake )); then
       if (( awake_since == 0 )); then
@@ -203,7 +282,11 @@ tv_blank_loop() {
       # wake, a watcher that missed the shell's own wake, and a re-blank
       # obligation that evaporated), each a different hole in the event logic.
       # This does not care why the screen is on -- only that it should not be.
-      if (( $(date +%s) - last_verify >= TV_VERIFY_SECS )); then
+      # Check far more often mid-stream: nobody is at the desk to notice a lit
+      # panel, and stream start/stop are exactly when the TV gets re-lit.
+      verify_every=$TV_VERIFY_SECS
+      is_held && verify_every=$STREAM_VERIFY_SECS
+      if (( $(date +%s) - last_verify >= verify_every )); then
         last_verify=$(date +%s)
         state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>/dev/null)
         case "$state" in
@@ -283,7 +366,7 @@ tv_deep_off() {
 }
 
 tv_restore() {
-  log "unlocked -- restoring displays"
+  log "active -- restoring displays"
   # Blocks until any in-flight blank finishes, so restore is always last.
   exec 8>"$TV_STATE_LOCK"
   flock 8
@@ -295,29 +378,64 @@ tv_restore() {
   flock -u 8
 }
 
+# --- activity monitor -----------------------------------------------------
+# Separate 3s IdleMonitor so the first real input after a stream ends is seen
+# immediately, rather than waiting on the shell's 5-minute idle.
+rm -f "$HOLD_FILE" "$ACTIVITY_FILE"
+quickshell -p "$HOME/.local/lgpowercontrol/activity-monitor/shell.qml" 2>&1 |
+  while IFS= read -r line; do
+    case "$line" in
+    *"ACTIVITY idle"*) echo idle >"$ACTIVITY_FILE" ;;
+    *"ACTIVITY active"*) echo active >"$ACTIVITY_FILE" ;;
+    esac
+  done &
+
+activity() { cat "$ACTIVITY_FILE" 2>/dev/null; }
+
 # --- state machine ---------------------------------------------------------
-locked=0
-locked_at=0
+dark=0
+dark_at=0
+post_stream_quiet=0
 escalated=0
 
-log "started (poll=${POLL_SECS}s, deep-off after ${DEEP_AFTER_LOCK_SECS}s locked)"
+log "started (poll=${POLL_SECS}s, deep-off after ${DEEP_AFTER_DARK_SECS}s dark)"
 
 while true; do
-  if is_locked; then
-    if (( ! locked )); then
-      locked=1
-      locked_at=$(date +%s)
+  # Evaluated BEFORE is_dark: sunshine-stream-begin creates the flag and output
+  # as a prep-cmd, before the client sends any input that would end idle.
+  if is_streaming; then
+    if (( dark )) && ! is_held; then
+      touch "$HOLD_FILE"
+      log "stream started with displays dark -- holding them dark"
+    fi
+    post_stream_quiet=0
+  elif is_held; then
+    # Stream is over. Release only on input that cannot be the stream's: wait
+    # for the stream's input to go quiet, then for input to start again.
+    if [[ $(activity) == idle ]]; then
+      post_stream_quiet=1
+    elif (( post_stream_quiet )) && [[ $(activity) == active ]]; then
+      rm -f "$HOLD_FILE"
+      post_stream_quiet=0
+      log "input at the desk after stream -- releasing hold"
+    fi
+  fi
+
+  if is_dark; then
+    if (( ! dark )); then
+      dark=1
+      dark_at=$(date +%s)
       escalated=0
       tv_blank_loop &
-    elif (( ! escalated && DEEP_AFTER_LOCK_SECS > 0 )); then
-      if (( $(date +%s) - locked_at >= DEEP_AFTER_LOCK_SECS )); then
+    elif (( ! escalated && DEEP_AFTER_DARK_SECS > 0 )); then
+      if (( $(date +%s) - dark_at >= DEEP_AFTER_DARK_SECS )); then
         escalated=1
         tv_deep_off
       fi
     fi
   else
-    if (( locked )); then
-      locked=0
+    if (( dark )); then
+      dark=0
       escalated=0
       tv_restore
     fi
