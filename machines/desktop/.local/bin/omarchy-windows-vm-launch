@@ -1,0 +1,161 @@
+#!/bin/bash
+# Launch the Windows VM and connect over RDP without a polkit prompt.
+#
+# The packaged `omarchy-windows-vm launch` elevates through pkexec, which needs
+# a graphical polkit agent to draw a password dialog. When that agent is wedged
+# (or absent) the launch silently hangs forever with no window and no error --
+# which is exactly what the desktop shortcut was doing.
+#
+# A sudoers rule already grants NOPASSWD on the three read-only/lifecycle
+# privileged actions (up_wait, status, down) -- the same grant the MacBook's
+# remote launch script uses. This wrapper takes that path instead. It never
+# touches write_compose or the bare `up`, so it grants nothing extra: those
+# still require a real authentication, by design.
+#
+# Falls back to the stock `omarchy-windows-vm launch` if the sudo grant is gone,
+# so the shortcut keeps working either way.
+
+set -uo pipefail
+
+VM=/usr/bin/omarchy-windows-vm
+LOG_FILE="$HOME/.local/state/omarchy/windows-vm-launch.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+# Keep the log from growing without bound.
+[[ -f $LOG_FILE ]] && (($(stat -c %s "$LOG_FILE" 2>/dev/null || echo 0) > 1048576)) &&
+  tail -c 262144 "$LOG_FILE" >"$LOG_FILE.tmp" && mv -f "$LOG_FILE.tmp" "$LOG_FILE"
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "=== $(date -Is) launch ==="
+CREDENTIALS_FILE="$HOME/.config/windows/credentials"
+
+# Closing the RDP window leaves the VM running -- disconnecting is not the same
+# as being done with it. The VM is shut down from inside Windows (the container
+# has restart:"no", so it exits on its own when the guest powers off).
+# Pass --stop-on-exit to tear it down when the window closes instead.
+STOP_ON_EXIT=false
+case ${1:-} in
+--stop-on-exit | -s) STOP_ON_EXIT=true ;;
+--keep-alive | -k) ;; # accepted for compatibility; this is the default now
+esac
+
+priv() { sudo -n "$VM" __priv "$@"; }
+
+# No passwordless grant -> hand back to the packaged launcher (which prompts).
+if ! sudo -n "$VM" __priv status >/dev/null 2>&1; then
+  exec omarchy-windows-vm launch "$@"
+fi
+
+if [[ ! -f $CREDENTIALS_FILE ]]; then
+  omarchy-notification-send -u critical "Windows VM" "Not configured. Run: omarchy-windows-vm install"
+  exit 1
+fi
+
+read_credential() {
+  local want="$1" key value
+  while IFS='=' read -r key value; do
+    [[ $key == "$want" ]] && { printf '%s' "$value"; return 0; }
+  done <"$CREDENTIALS_FILE"
+  return 1
+}
+
+WIN_USER=$(read_credential USERNAME) || WIN_USER="docker"
+WIN_PASS=$(read_credential PASSWORD) || WIN_PASS="admin"
+
+WAS_RUNNING=false
+[[ $(priv status 2>/dev/null) == running ]] && WAS_RUNNING=true
+
+if ! priv up_wait; then
+  omarchy-notification-send -u critical "Windows VM" "Failed to start Windows VM"
+  exit 1
+fi
+
+# FreeRDP 3 tries Kerberos before NTLM; the stock /etc/krb5.conf points at MIT's
+# sample realm and each connect then blocks ~23s off-network. Point it at a
+# realm-less config so it falls straight through to NTLM. (Same as upstream.)
+KRB5_CONF="$HOME/.config/windows/krb5.conf"
+mkdir -p "$(dirname "$KRB5_CONF")"
+[[ -f $KRB5_CONF ]] || printf '[libdefaults]\n  dns_lookup_kdc = false\n  dns_lookup_realm = false\n' >"$KRB5_CONF"
+export KRB5_CONFIG="$KRB5_CONF"
+
+# Display scaling is sent to the guest per-connection, so each client picks its
+# own size without touching Windows' own display setting. Keep the guest itself
+# at 100% in Settings > Display > Scale -- a scale set *inside* Windows is a
+# persistent per-user value that overrides this and follows you to every client.
+#
+# Override with ~/.config/windows/scale (a percentage, 100-500). Falls back to
+# the focused monitor's Hyprland scale.
+SCALE_FILE="$HOME/.config/windows/scale"
+SCALE_PERCENT=""
+if [[ -r $SCALE_FILE ]]; then
+  SCALE_PERCENT=$(tr -cd '0-9' <"$SCALE_FILE")
+fi
+if [[ -z $SCALE_PERCENT ]]; then
+  HYPR_SCALE=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select (.focused == true) | .scale' 2>/dev/null)
+  [[ -n ${HYPR_SCALE:-} ]] && SCALE_PERCENT=$(echo "$HYPR_SCALE" | awk '{print int($1 * 100)}')
+fi
+((SCALE_PERCENT >= 100 && SCALE_PERCENT <= 500)) 2>/dev/null || SCALE_PERCENT=100
+
+# /scale-desktop takes any percentage; /scale-device only accepts 100|140|180,
+# so snap it to the nearest legal step for Store/shell UI.
+if ((SCALE_PERCENT >= 160)); then
+  DEVICE_SCALE=180
+elif ((SCALE_PERCENT >= 120)); then
+  DEVICE_SCALE=140
+else
+  DEVICE_SCALE=100
+fi
+
+RDP_SCALE=""
+((SCALE_PERCENT != 100)) && RDP_SCALE="/scale-desktop:$SCALE_PERCENT /scale-device:$DEVICE_SCALE"
+
+# The container reports "windows started successfully" as soon as the guest's
+# RDP listener is up, but Windows is still finishing boot for a few more
+# seconds. Connecting into that window gets you the startup screen and then a
+# server-side drop. Retry instead of tearing the VM down -- the old behaviour
+# ran `down` on that drop, which also made the *next* click fail, because it
+# connected into a container that was mid-shutdown (stop_grace_period is 2m).
+MIN_SESSION=25   # a session shorter than this was dropped, not closed by you
+MAX_ATTEMPTS=5
+
+connect() {
+  xfreerdp3 /u:"$WIN_USER" /p:"$WIN_PASS" /v:127.0.0.1:3389 -grab-keyboard /sound /microphone \
+    /clipboard /cert:ignore /title:"Windows VM - Omarchy" /dynamic-resolution /gfx:AVC444 \
+    /floatbar:sticky:off,default:visible,show:fullscreen $RDP_SCALE
+}
+
+attempt=1
+while :; do
+  started=$SECONDS
+  connect
+  rc=$?
+  elapsed=$((SECONDS - started))
+
+  # A session that ran long enough is you closing the window.
+  ((elapsed >= MIN_SESSION)) && break
+  # A clean exit (rc 0) is you closing the window -- SUPER+Q and a Windows
+  # logoff both land here. A server-side drop, which is what the boot race
+  # produces, exits non-zero. Never reopen a window you closed on purpose:
+  # guessing wrong in that direction is far more annoying than one extra click.
+  ((rc == 0)) && break
+  # You shut Windows down from inside: the container is on its way out (or gone),
+  # so there is nothing to reconnect to. Not an error.
+  if [[ $(priv status 2>/dev/null) != running ]]; then
+    echo "Guest powered off; not reconnecting."
+    break
+  fi
+
+  if ((attempt >= MAX_ATTEMPTS)); then
+    omarchy-notification-send -u critical "Windows VM" \
+      "RDP kept dropping after $MAX_ATTEMPTS attempts (last exit $rc). Log: $LOG_FILE"
+    break
+  fi
+
+  echo "RDP dropped after ${elapsed}s (exit $rc); guest probably still booting -- retry $((++attempt))/$MAX_ATTEMPTS in 5s"
+  sleep 5
+done
+
+if [[ $STOP_ON_EXIT == "true" ]]; then
+  priv down || omarchy-notification-send -u critical "Windows VM" "Could not stop the VM; run: omarchy-windows-vm stop"
+else
+  [[ $(priv status 2>/dev/null) == running ]] &&
+    echo "RDP closed; VM left running. Shut down from inside Windows, or: omarchy-windows-vm stop"
+fi

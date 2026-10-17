@@ -30,4 +30,11 @@
 
   // Background switcher: theme backgrounds + user backgrounds + ~/Wallpapers
   "style.background": {"icon":"","label":"Background","aliases":["background","wallpaper"],"action":"background=$(omarchy-menu-images --selected \"$(readlink -f \"$HOME/.local/state/omarchy/current/background\")\" \"$HOME/.local/state/omarchy/current/theme/backgrounds\" \"$HOME/.config/omarchy/backgrounds/$(cat \"$HOME/.local/state/omarchy/current/theme.name\" 2>/dev/null)\" \"$HOME/Wallpapers\"); [[ -n $background ]] && omarchy-theme-bg-set \"$background\""},
+
+  // DP-6 panel colour (DDC/CI). See ~/.local/bin/dp6-color
+  "style.dp6": {"icon":"󰍹","label":"DP-6 Color","aliases":["dp6","monitor color"],"description":"Colour, brightness and contrast for the DP-6 panel"},
+  "style.dp6.open": {"icon":"󰕾","label":"Open sliders","description":"Live colour UI in the browser","action":"$HOME/.local/bin/dp6-color --webapp"},
+  "style.dp6.settled": {"icon":"","label":"Apply settled","description":"Restore the dialled-in settings","action":"$HOME/.local/bin/dp6-color --apply settled-2026-09-12"},
+  "style.dp6.baseline": {"icon":"󰜉","label":"Apply baseline","description":"Back to 70/3 with factory gains","action":"$HOME/.local/bin/dp6-color --apply baseline"},
+  "style.dp6.reset": {"icon":"","label":"Reset panel","description":"Clear the latched state where writes are ignored, then re-apply","action":"$HOME/.local/bin/dp6-color --reset"},
 }

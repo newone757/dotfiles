@@ -1,0 +1,21 @@
+{
+  "channel": "b",
+  "gain": 49,
+  "brightness": 90,
+  "contrast": 3,
+  "profiles": {
+    "baseline": {
+      "channel": "g",
+      "gain": 46,
+      "brightness": 70,
+      "contrast": 3
+    },
+    "settled-2026-09-12": {
+      "channel": "b",
+      "gain": 49,
+      "brightness": 90,
+      "contrast": 3
+    }
+  },
+  "bus": "14"
+}

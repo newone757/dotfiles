@@ -64,8 +64,8 @@
     "omarchy.background"
   ],
   "idle": {
-    "lock": 300,
-    "screensaver": 150
+    "screensaver": 300,
+    "lock": 2147000
   },
   "plugins": [
     {

@@ -1,0 +1,429 @@
+#!/usr/bin/env python3
+"""dp6-color - slider UI for the DP-6 panel's DDC/CI color controls.
+
+Why this exists instead of ddcui: on this panel the RGB gain registers
+(0x16/0x18/0x1A) are WRITE-ONLY. Writes apply, but reads always return the
+factory constants 49/46/50. ddcui positions its sliders from read-back, so
+they snap to phantom values and switching channels writes from that stale
+state, throwing the color cast wildly.
+
+Worse, the three gains are not independent: the panel has ONE gain register
+plus a channel selector. Writing any channel drops the previously-written one
+back to default, so only the most recent channel holds a non-default value.
+Verified by experiment - both bundled writes and writes spaced 2s apart lose
+the earlier channels. This app therefore exposes exactly one gain channel at
+a time, and never reads the gains back.
+
+Brightness (0x10) and contrast (0x12) DO read back honestly, so they are
+seeded from the monitor at startup.
+
+0x0B/0x0C (color temperature request) are never touched: writing them out of
+range latches the panel into rejecting all further writes.
+"""
+import json, os, re, subprocess, sys, threading, queue, html
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+CFG   = os.path.expanduser("~/.config/dp6-color")
+STATE = os.path.join(CFG, "state.json")
+PORT  = int(os.environ.get("DP6_PORT", "8765"))
+CONNECTOR = os.environ.get("DP6_CONNECTOR", "DP-6")
+
+GAINS = [("r", "16", "Red"), ("g", "18", "Green"), ("b", "1A", "Blue")]
+FACTORY = {"channel": "g", "gain": 46, "brightness": 31, "contrast": 48}
+GAIN_DEFAULT = {"r": 49, "g": 46, "b": 50}
+
+def bus_ok(bus):
+    """Cheap (~0.4s) check that a cached bus still answers, vs a 7s full detect."""
+    try:
+        p = subprocess.run(["ddcutil", "--bus", bus, "--sleep-multiplier", ".3",
+                            "getvcp", "10"], capture_output=True, text=True, timeout=15)
+        return p.returncode == 0 and "current value" in p.stdout
+    except Exception:
+        return False
+
+def get_bus(force=False):
+    """Cached bus number. Full detection costs ~7s, so do it only when needed."""
+    st = load_state()
+    cached = st.get("bus")
+    if cached and not force and bus_ok(cached):
+        return cached
+    bus = detect_bus()
+    st["bus"] = bus
+    save_state(st)
+    return bus
+
+def detect_bus():
+    """Find the I2C bus for CONNECTOR once, so writes can use --bus (7s -> 0.6s)."""
+    try:
+        out = subprocess.run(["ddcutil", "detect", "--brief"], capture_output=True,
+                             text=True, timeout=90).stdout
+    except Exception as e:
+        sys.exit(f"ddcutil detect failed: {e}")
+    bus = None
+    for block in out.split("\n\n"):
+        if CONNECTOR in block:
+            m = re.search(r"/dev/i2c-(\d+)", block)
+            if m:
+                bus = m.group(1)
+    if not bus:
+        sys.exit(f"Could not find {CONNECTOR} in ddcutil detect output.")
+    return bus
+
+BUS = None
+
+def ddc(*args, timeout=30):
+    cmd = ["ddcutil", "--bus", BUS, "--sleep-multiplier", ".3", *args]
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return p.returncode, p.stdout + p.stderr
+    except subprocess.TimeoutExpired:
+        return 1, "timeout"
+
+def read_honest():
+    """Seed brightness/contrast from the monitor - these two read back correctly."""
+    rc, out = ddc("getvcp", "10", "12", timeout=60)
+    vals = {}
+    for code, key in (("0x10", "brightness"), ("0x12", "contrast")):
+        m = re.search(re.escape(code) + r"\b.*?current value =\s*(\d+)", out)
+        if m:
+            vals[key] = int(m.group(1))
+    return vals
+
+def load_state():
+    st = dict(FACTORY); st["profiles"] = {}
+    if os.path.exists(STATE):
+        try:
+            st.update(json.load(open(STATE)))
+        except Exception:
+            pass
+    st.setdefault("profiles", {})
+    return st
+
+def save_state(st):
+    tmp = STATE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(st, f, indent=2)
+    os.replace(tmp, STATE)
+
+state = None
+apply_q = queue.Queue()
+
+def apply_worker():
+    """Coalescing worker: only the most recent target is ever written.
+
+    Two panel quirks drive the ordering:
+      * writing 0x10/0x12 re-applies the preset colour and wipes the gain,
+        so brightness/contrast go FIRST and only when actually changed;
+      * only ONE gain channel can hold a non-default value, so exactly one
+        gain write is issued, LAST.
+    """
+    last = {}
+    while True:
+        target = apply_q.get()
+        while True:                      # drain to the newest request
+            try: target = apply_q.get_nowait()
+            except queue.Empty: break
+        if target is None:
+            return
+
+        bc = ["setvcp"]
+        for key, code in (("brightness", "10"), ("contrast", "12")):
+            if last.get(key) != target[key]:
+                bc += [code, str(target[key])]
+        if len(bc) > 1:
+            ddc(*bc, timeout=60)
+
+        code = dict((k, c) for k, c, _ in GAINS)[target["channel"]]
+        ddc("setvcp", code, str(target["gain"]), timeout=60)
+
+        last = dict(target)
+
+def do_reset():
+    """Clear the latched reject state: factory colour defaults, then User 1."""
+    ddc("setvcp", "08", "1", timeout=60)
+    ddc("setvcp", "14", "0x0b", timeout=60)   # User 1 unlocks the gains
+
+PAGE = r"""<title>DP-6 Color</title>
+<style>
+:root{--bg:#f6f6f4;--fg:#1a1a19;--mut:#6b6b66;--card:#fff;--line:#e0e0dc;--accent:#7c5cff;--warn:#8a6d1f;--warnbg:#fdf6e3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16161a;--fg:#ececea;--mut:#9a9a94;--card:#1f1f25;--line:#31313a;--warn:#e0c060;--warnbg:#2a2418}}
+:root[data-theme="dark"]{--bg:#16161a;--fg:#ececea;--mut:#9a9a94;--card:#1f1f25;--line:#31313a;--warn:#e0c060;--warnbg:#2a2418}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,-apple-system,sans-serif;margin:0;padding:22px}
+.wrap{max-width:620px;margin:0 auto}
+h1{font-size:17px;margin:0 0 2px}
+.sub{color:var(--mut);font-size:12.5px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.warn{background:var(--warnbg);border-color:var(--warn);color:var(--warn);font-size:12.5px}
+.row{display:flex;align-items:center;gap:12px;margin:13px 0}
+.row label{width:80px;font-weight:550;flex:none}
+.row input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
+.row .val input{width:48px;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:2px 4px;text-align:right;font:ui-monospace,monospace;font-size:13px}
+button{font:inherit;padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.p{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:7px 20px}
+.seg button.on{background:var(--accent);color:#fff}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:block;overflow-x:auto;white-space:nowrap;font-size:12px}
+.note{color:var(--mut);font-size:12px;margin-top:10px}
+.st{font-size:12px;color:var(--mut);min-height:1.4em}
+select,input[type=text]{font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:6px}
+</style>
+<div class=wrap>
+<h1>DP-6 Color</h1>
+<p class=sub>Writes go straight to the panel over DDC/CI. The values here are the source of truth &mdash; the monitor's gain register is write-only and always reports 49&#8202;/&#8202;46&#8202;/&#8202;50 no matter what's loaded.</p>
+
+<div class="card warn">
+<b>One gain channel at a time.</b> This panel has a single gain register plus a channel selector, not three independent gains. Switching channel drops the previous one back to its default &mdash; so you can correct a cast in one direction, but you can't balance two channels against each other.
+</div>
+
+<div class=card>
+  <div class=row><label>Channel</label>
+    <span class=seg id=seg>
+      <button data-c=r onclick="setCh('r')">Red</button>
+      <button data-c=g onclick="setCh('g')">Green</button>
+      <button data-c=b onclick="setCh('b')">Blue</button>
+    </span>
+  </div>
+  <div class=row><label id=glab>Gain</label>
+    <input type=range id=s_gain min=0 max=100 step=1>
+    <span class=val><input id=n_gain inputmode=numeric></span></div>
+  <p class=note id=defnote></p>
+</div>
+
+<div class=card>
+  <div class=row><label>Brightness</label>
+    <input type=range id=s_brightness min=0 max=100 step=1>
+    <span class=val><input id=n_brightness inputmode=numeric></span></div>
+  <div class=row><label>Contrast</label>
+    <input type=range id=s_contrast min=0 max=100 step=1>
+    <span class=val><input id=n_contrast inputmode=numeric></span></div>
+  <p class=note>These two are independent and do read back correctly. Contrast on this panel is a digital multiplier &mdash; high values clip highlights.</p>
+</div>
+
+<div class=card>
+  <div class=bar>
+    <button class=p onclick=reapply()>Re-apply</button>
+    <button onclick=factory()>Factory values</button>
+    <button onclick=reset()>Reset panel + User&nbsp;1</button>
+  </div>
+  <p class=note><b>Reset panel</b> clears the latched state where the monitor silently ignores every write. Use it if changes stop having any effect at all.</p>
+</div>
+
+<div class=card>
+  <div class=bar>
+    <input type=text id=pname placeholder="profile name">
+    <button onclick=saveP()>Save</button>
+    <select id=psel onchange=loadP()><option value="">load profile&hellip;</option></select>
+    <button onclick=delP()>Delete</button>
+  </div>
+</div>
+
+<div class=card>
+  <code id=cmd></code>
+  <p class=note>Equivalent commands, if you want them in a script.</p>
+</div>
+<div class=st id=st></div>
+</div>
+<script>
+const GDEF={r:49,g:46,b:50}, CODE={r:'16',g:'18',b:'1A'}, NAME={r:'Red',g:'Green',b:'Blue'};
+let S={channel:'g',gain:46,brightness:31,contrast:3}, P={}, BUS='', timer=null;
+
+function bindNum(k){
+  const s=document.getElementById('s_'+k), n=document.getElementById('n_'+k);
+  s.addEventListener('input',()=>{S[k]=+s.value;n.value=s.value;paint();push()});
+  n.addEventListener('change',()=>{const v=Math.max(0,Math.min(100,+n.value||0));
+    S[k]=v;s.value=v;n.value=v;paint();push()});
+}
+function setCh(c){ S.channel=c; S.gain=GDEF[c]; paint(); push(); }
+function paint(){
+  ['gain','brightness','contrast'].forEach(k=>{
+    document.getElementById('s_'+k).value=S[k];
+    document.getElementById('n_'+k).value=S[k];});
+  document.querySelectorAll('#seg button').forEach(b=>
+    b.classList.toggle('on', b.dataset.c===S.channel));
+  document.getElementById('glab').textContent=NAME[S.channel]+' gain';
+  document.getElementById('defnote').textContent=
+    'Default for '+NAME[S.channel]+' is '+GDEF[S.channel]+'. Lower = less '+
+    NAME[S.channel].toLowerCase()+'.';
+  document.getElementById('cmd').textContent=
+    `ddcutil --bus ${BUS} setvcp 10 ${S.brightness} 12 ${S.contrast} ; `+
+    `ddcutil --bus ${BUS} setvcp ${CODE[S.channel]} ${S.gain}`;
+}
+function push(){clearTimeout(timer);timer=setTimeout(send,150)}
+function send(){say('applying…');
+  fetch('/api/apply',{method:'POST',body:JSON.stringify(S)})
+    .then(r=>r.json()).then(()=>say('applied')).catch(()=>say('failed'))}
+function say(m){document.getElementById('st').textContent=m}
+function reapply(){send()}
+function factory(){S={channel:S.channel,gain:GDEF[S.channel],brightness:31,contrast:48};paint();send()}
+function reset(){say('resetting…');fetch('/api/reset',{method:'POST'})
+  .then(r=>r.json()).then(()=>{say('panel reset — re-applying');send()})}
+function saveP(){const n=document.getElementById('pname').value.trim();if(!n)return;
+  fetch('/api/profile',{method:'POST',body:JSON.stringify({name:n,vals:S})})
+    .then(r=>r.json()).then(d=>{fillP(d.profiles);say('saved '+n)})}
+function delP(){const n=document.getElementById('psel').value;if(!n)return;
+  fetch('/api/profile',{method:'POST',body:JSON.stringify({name:n,del:1})})
+    .then(r=>r.json()).then(d=>{fillP(d.profiles);say('deleted '+n)})}
+function loadP(){const n=document.getElementById('psel').value;if(!n||!P[n])return;
+  S={...S,...P[n]};paint();send()}
+function fillP(p){P=p;document.getElementById('psel').innerHTML=
+  '<option value="">load profile…</option>'+Object.keys(p).map(k=>`<option>${k}</option>`).join('')}
+['gain','brightness','contrast'].forEach(bindNum);
+fetch('/api/state').then(r=>r.json()).then(d=>{
+  BUS=d.bus; ['channel','gain','brightness','contrast'].forEach(k=>{
+    if(d.state[k]!=null)S[k]=d.state[k]});
+  fillP(d.state.profiles||{});paint();say('ready');
+});
+</script>"""
+
+class H(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+
+    def _send(self, code, body, ctype):
+        b = body.encode()
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(b)))
+        self.end_headers()
+        self.wfile.write(b)
+
+    def do_GET(self):
+        if self.path == "/":
+            self._send(200, "<!doctype html>" + PAGE, "text/html; charset=utf-8")
+        elif self.path == "/api/state":
+            self._send(200, json.dumps({"state": state, "bus": BUS}), "application/json")
+        else:
+            self._send(404, "no", "text/plain")
+
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length") or 0)
+        try:
+            data = json.loads(self.rfile.read(n) or "{}")
+        except Exception:
+            data = {}
+        if self.path == "/api/apply":
+            if data.get("channel") in ("r", "g", "b"):
+                state["channel"] = data["channel"]
+            for k in ("gain", "brightness", "contrast"):
+                if k in data:
+                    state[k] = max(0, min(100, int(data[k])))
+            save_state(state)
+            apply_q.put({k: state[k] for k in ("channel","gain","brightness","contrast")})
+            self._send(200, json.dumps({"ok": 1}), "application/json")
+        elif self.path == "/api/reset":
+            do_reset()
+            self._send(200, json.dumps({"ok": 1}), "application/json")
+        elif self.path == "/api/profile":
+            name = (data.get("name") or "").strip()
+            if name:
+                if data.get("del"):
+                    state["profiles"].pop(name, None)
+                else:
+                    state["profiles"][name] = data.get("vals") or {}
+                save_state(state)
+            self._send(200, json.dumps({"profiles": state["profiles"]}), "application/json")
+        else:
+            self._send(404, "no", "text/plain")
+
+def apply_now(vals):
+    """One-shot apply, same ordering rules as the worker."""
+    bc = ["setvcp"]
+    for key, code in (("brightness", "10"), ("contrast", "12")):
+        if vals.get(key) is not None:
+            bc += [code, str(vals[key])]
+    if len(bc) > 1:
+        ddc(*bc, timeout=60)
+    ch = vals.get("channel")
+    if ch in ("r", "g", "b"):
+        code = dict((k, c) for k, c, _ in GAINS)[ch]
+        ddc("setvcp", code, str(vals["gain"]), timeout=60)
+
+def port_busy():
+    import socket
+    with socket.socket() as sk:
+        sk.settimeout(0.4)
+        return sk.connect_ex(("127.0.0.1", PORT)) == 0
+
+WM_CLASS = "dp6-color"
+
+def launch_webapp():
+    """Start the server if needed, then open it as a standalone app window
+    (not a browser tab) with a fixed WM class so Hyprland can float it."""
+    import time
+    if not port_busy():
+        subprocess.Popen(["setsid", sys.executable, os.path.abspath(__file__), "--no-open"],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         stdin=subprocess.DEVNULL, start_new_session=True)
+        for _ in range(60):                 # wait for it to bind (~up to 30s)
+            if port_busy():
+                break
+            time.sleep(0.5)
+        else:
+            sys.exit("server did not start")
+    url = f"http://127.0.0.1:{PORT}/"
+    subprocess.Popen(["omarchy-launch-webapp", url, f"--class={WM_CLASS}"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print(f"opened {url} as webapp (class {WM_CLASS})")
+
+def main():
+    global BUS, state
+    args = sys.argv[1:]
+
+    if "--webapp" in args:
+        launch_webapp()
+        return
+
+    # --- one-shot modes: no server, for menu entries ---
+    if "--apply" in args:
+        BUS = get_bus("--redetect" in sys.argv)
+        st = load_state()
+        name = args[args.index("--apply") + 1] if len(args) > args.index("--apply") + 1 else ""
+        vals = st["profiles"].get(name)
+        if vals is None:
+            sys.exit(f"no such profile: {name}  (have: {', '.join(st['profiles']) or 'none'})")
+        apply_now(vals)
+        st.update({k: v for k, v in vals.items() if k != "profiles"})
+        save_state(st)
+        print(f"applied profile {name}")
+        return
+    if "--reset" in args:
+        BUS = get_bus("--redetect" in sys.argv)
+        do_reset()
+        st = load_state()
+        apply_now(st)
+        print("panel reset, settings re-applied")
+        return
+    if "--list" in args:
+        print("\n".join(load_state()["profiles"]) or "(no profiles)")
+        return
+
+    # --- server mode: if one is already up, just focus the browser ---
+    if port_busy():
+        url = f"http://127.0.0.1:{PORT}/"
+        print(f"already running: {url}")
+        if "--no-open" not in args:
+            subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL)
+        return
+
+    BUS = get_bus("--redetect" in sys.argv)
+    state = load_state()
+    if not os.path.exists(STATE):
+        state.update(read_honest())     # seed brightness/contrast from the panel
+        save_state(state)
+    threading.Thread(target=apply_worker, daemon=True).start()
+    srv = ThreadingHTTPServer(("127.0.0.1", PORT), H)
+    url = f"http://127.0.0.1:{PORT}/"
+    print(f"DP-6 color UI on {url}  (bus {BUS})")
+    if "--no-open" not in args:
+        subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
+    try:
+        srv.serve_forever()
+    except KeyboardInterrupt:
+        print("\nbye")
+
+if __name__ == "__main__":
+    main()
