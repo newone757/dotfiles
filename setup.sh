@@ -28,6 +28,19 @@ fi
 echo "Stowing machine config for '$MACHINE'..."
 stow --dir="$DOTFILES_DIR/machines" --target="$HOME" "$MACHINE"
 
+# System files (e.g. udev rules) can't be stowed into ~; copy them into / instead.
+SYSTEM_DIR="$DOTFILES_DIR/system/$MACHINE"
+if [[ -d "$SYSTEM_DIR" ]]; then
+  echo "Installing system files for '$MACHINE' (needs sudo)..."
+  (cd "$SYSTEM_DIR" && find . -type f) | while read -r f; do
+    sudo install -D -m 644 "$SYSTEM_DIR/$f" "/${f#./}"
+    echo "  /${f#./}"
+  done
+  if [[ -d "$SYSTEM_DIR/etc/udev" ]]; then
+    sudo udevadm control --reload && sudo udevadm trigger -s input
+  fi
+fi
+
 echo "Done. You may need to log out and back in for all changes to take effect."
 
 # Theme clones live outside the repo (they are upstream git repos) and must be

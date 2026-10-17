@@ -1,0 +1,6 @@
+# Give the active seat user an ACL on the Magic Trackpad's evdev nodes so the
+# trackpad-gestures daemon can read them. Omarchy 4.0.4 (migration 1787865477)
+# removed the user from the `input` group, which granted every input device;
+# this grants only the trackpad. Must sort before 73-seat-late.rules, which is
+# where the uaccess tag is turned into an ACL.
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="Apple Inc. Magic Trackpad", TAG+="uaccess"
