@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Crimson Desert launch wrapper.
+#
+# Frame Generation initialising during game startup wedges the GPU within seconds
+# (NVRM Xid 32, sometimes Xid 109) on nvidia-open 610.x + RTX 3080. Enabling FG
+# from the in-game menu AFTER the save has loaded works fine. The game persists
+# the FG flag on exit, so clear it before every launch.
+S="$HOME/.local/share/Steam/steamapps/compatdata/3321460/pfx/drive_c/users/steamuser/AppData/Local/Pearl Abyss/CD/save/user_engine_option_save.xml"
+if [ -f "$S" ]; then
+  sed -i 's|\(<OptionBool Name="_enableFrameGeneration" _localStr="[^"]*"\) _value="True"/>|\1/>|' "$S"
+fi
+# XWayland primary must be the TV (or the Sunshine output when streaming), or the
+# game enumerates DP-6's 1920x720 modes. See ~/.local/bin/xwayland-primary.
+~/.local/bin/xwayland-primary
+exec "$@"

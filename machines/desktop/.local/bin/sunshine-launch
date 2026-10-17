@@ -1,0 +1,44 @@
+#!/bin/bash
+# Launch a Steam target onto the Sunshine headless output.
+#   sunshine-launch bigpicture | sunshine-launch <appid>
+# Steam restores windows to their last-used monitor and ignores focus, so the
+# window is relocated explicitly once it appears.
+set -uo pipefail
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [[ -z ${WAYLAND_DISPLAY:-} ]]; then
+  for s in "$XDG_RUNTIME_DIR"/wayland-[0-9]*; do
+    [[ -S "$s" ]] && { export WAYLAND_DISPLAY="${s##*/}"; break; }
+  done
+fi
+[[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && \
+  export HYPRLAND_INSTANCE_SIGNATURE="$(ls -t "$XDG_RUNTIME_DIR/hypr" 2>/dev/null | head -1)"
+
+TARGET="${1:-bigpicture}"
+MON=sunshine
+
+case "$TARGET" in
+  bigpicture) URL="steam://open/bigpicture"; MATCH="Big Picture" ;;
+  [0-9]*)     URL="steam://rungameid/$TARGET"; MATCH="" ;;
+  *)          URL="$TARGET"; MATCH="" ;;
+esac
+
+have_mon() { hyprctl monitors -j 2>/dev/null | jq -e --arg m "$MON" ".[]|select(.name==\$m)" >/dev/null 2>&1; }
+have_mon && hyprctl dispatch focusmonitor "$MON" >/dev/null 2>&1
+
+setsid steam "$URL" >/dev/null 2>&1 &
+
+# Relocate any new window that is not already on the headless output.
+have_mon || exit 0
+MONID=$(hyprctl monitors -j | jq -r --arg m "$MON" ".[]|select(.name==\$m)|.id")
+for _ in $(seq 60); do
+  sleep 0.5
+  mapfile -t ADDRS < <(hyprctl clients -j 2>/dev/null | jq -r --argjson id "$MONID" --arg t "$MATCH" \
+    ".[]|select(.monitor != \$id)|select((\$t==\"\") or (.title|test(\$t;\"i\")))|select(.class|test(\"steam|borderlands|onimusha\";\"i\"))|.address")
+  (( ${#ADDRS[@]} == 0 )) && continue
+  for a in "${ADDRS[@]}"; do
+    hyprctl dispatch focuswindow "address:$a" >/dev/null 2>&1
+    hyprctl dispatch movewindow "mon:$MON" >/dev/null 2>&1
+  done
+  break
+done
+exit 0

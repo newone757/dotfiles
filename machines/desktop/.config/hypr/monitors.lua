@@ -47,3 +47,17 @@ for _, ws in ipairs({ 1, 2, 3, 4, 5 }) do
 end
 
 hl.workspace_rule({ workspace = "6", monitor = "DP-6", default = true })
+
+-- Sunshine stream workspace. Lives on the headless "sunshine" output that
+-- ~/.local/bin/sunshine-virtual-display creates per stream; harmless when that
+-- output doesn't exist.
+hl.workspace_rule({ workspace = "name:stream", monitor = "sunshine", default = true })
+
+-- Keep XWayland's primary output on the TV (or the Sunshine output mid-stream).
+-- When HDMI-A-2 re-enumerates after DP-6, XWayland lists DP-6 first and Proton
+-- games come up at 1920x720. The short delay lets XWayland see the new layout.
+for _, ev in ipairs({ "monitor.added", "monitor.removed", "monitor.layout_changed" }) do
+  hl.on(ev, function()
+    hl.exec_cmd("sleep 1; ~/.local/bin/xwayland-primary")
+  end)
+end

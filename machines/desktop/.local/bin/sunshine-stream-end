@@ -1,0 +1,54 @@
+#!/bin/bash
+# Sunshine stream end: stream rules off, windows on the stream workspace back to
+# the desktop, headless output removed, idle-lock inhibit released.
+# Safe to run by hand (e.g. over SSH) if a stream dies without cleaning up.
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [[ -z ${WAYLAND_DISPLAY:-} ]]; then
+  for s in "$XDG_RUNTIME_DIR"/wayland-[0-9]*; do
+    [[ -S "$s" ]] && { export WAYLAND_DISPLAY="${s##*/}"; break; }
+  done
+fi
+if [[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+  export HYPRLAND_INSTANCE_SIGNATURE="$(ls -t "$XDG_RUNTIME_DIR/hypr" 2>/dev/null | head -1)"
+fi
+
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/sunshine-prep.log"
+mkdir -p "${LOG%/*}"
+echo "$(date '+%F %T') end" >> "$LOG"
+
+PHYSICAL=(HDMI-A-2 DP-6)
+
+# 0. legacy safety net: the old setup disabled the physical monitors. Only
+#    re-enable one that is actually disabled -- re-applying a rule to a live
+#    output can knock it off its configured mode.
+for m in "${PHYSICAL[@]}"; do
+  if hyprctl monitors all -j 2>/dev/null | jq -e ".[] | select(.name==\"$m\" and .disabled)" >/dev/null 2>&1; then
+    hyprctl repl "return hl.monitor({ output = \"$m\", disabled = false })" >/dev/null 2>&1
+    echo "  re-enabled $m" >> "$LOG"
+  fi
+done
+
+# 1. stream rules off
+rm -f "$XDG_RUNTIME_DIR/sunshine-streaming"
+hyprctl repl 'StreamSetRules(false) return "ok"' >/dev/null 2>&1
+
+# 2. bring anything on the stream workspace back to the TV's current workspace
+dest=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.name=="HDMI-A-2") | .activeWorkspace.name')
+dest=${dest:-1}
+hyprctl clients -j 2>/dev/null | jq -r '.[] | select(.workspace.name=="stream") | .address' \
+  | while read -r a; do
+      hyprctl repl "hl.dispatch(hl.dsp.window.move({ workspace = \"$dest\", follow = false, window = \"address:$a\" })) return 'ok'" >/dev/null 2>&1
+      echo "  returned $a to workspace $dest" >> "$LOG"
+    done
+
+# 3. tear down the headless output
+~/.local/bin/sunshine-virtual-display stop >> "$LOG" 2>&1
+
+~/.local/bin/xwayland-primary
+
+# 4. release inhibit (never below zero)
+F=/tmp/screensaver_inhibit_count
+exec 9>"$F.lock"; flock 9
+c=$(cat "$F" 2>/dev/null); c=${c:-0}; n=$((c - 1)); (( n < 0 )) && n=0; echo "$n" > "$F"
+flock -u 9
+exit 0

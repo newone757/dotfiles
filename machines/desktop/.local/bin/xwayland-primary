@@ -1,0 +1,18 @@
+#!/bin/bash
+# Pin the XWayland primary output. XWayland lists outputs in Hyprland's
+# connection order, so whenever the LG TV (HDMI-A-2) re-enumerates after DP-6
+# -- TV power cycle, HDMI wake -- DP-6 becomes the first output and X11/Proton
+# games enumerate only its 1920x720 modes. Games read this once at startup.
+#
+# While a Sunshine stream is live, the headless "sunshine" output is primary
+# instead, so games launched for the stream size to the client.
+# Called from Hyprland monitor events (monitors.lua), sunshine-stream-begin/end
+# and the crimson-desert-launch wrapper. Safe to run by hand.
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DISPLAY="${DISPLAY:-:0}"
+
+target=HDMI-A-2
+if [[ -e "$XDG_RUNTIME_DIR/sunshine-streaming" ]] && xrandr --listmonitors 2>/dev/null | grep -q ' sunshine$'; then
+  target=sunshine
+fi
+xrandr --output "$target" --primary 2>/dev/null

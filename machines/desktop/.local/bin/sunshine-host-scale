@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Raise HDMI-A-2's scale while a stream is running, so the 4K desktop is
+# readable on a smaller client panel, and restore it on disconnect.
+# Driven by Sunshine's global_prep_cmd.
+#
+# wlr-randr resets an output to its PREFERRED mode when --scale is passed on
+# its own. HDMI-A-2 prefers 3840x2160@60 but runs at 119.88, so the current
+# mode is always re-asserted in the same call, or the TV silently drops to 60Hz.
+set -uo pipefail
+
+OUT=HDMI-A-2
+STREAM_SCALE=1.5
+FALLBACK_MODE="3840x2160@119.879997"
+FALLBACK_SCALE=1
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+STATE="$XDG_RUNTIME_DIR/sunshine-host-scale.state"
+
+if [[ -z "${WAYLAND_DISPLAY:-}" ]]; then
+  for s in "$XDG_RUNTIME_DIR"/wayland-*; do
+    [[ -S "$s" ]] && { export WAYLAND_DISPLAY="${s##*/}"; break; }
+  done
+fi
+
+# Current mode ("3840x2160@119.879997") and scale, straight from wlr-randr.
+current_mode() {
+  wlr-randr 2>/dev/null | awk -v o="$OUT" '
+    $1 == o          { f = 1; next }
+    /^[A-Za-z]/      { f = 0 }
+    f && /\(current\)/ { print $1 "@" $3; exit }'
+}
+current_scale() {
+  wlr-randr 2>/dev/null | awk -v o="$OUT" '
+    $1 == o     { f = 1; next }
+    /^[A-Za-z]/ { f = 0 }
+    f && $1 == "Scale:" { print $2; exit }'
+}
+
+apply() {  # apply <mode> <scale>
+  wlr-randr --output "$OUT" --mode "$1" --scale "$2" >/dev/null 2>&1
+}
+
+case "${1:-}" in
+  start)
+    mode="$(current_mode)"; scale="$(current_scale)"
+    [[ -n "$mode"  ]] || mode="$FALLBACK_MODE"
+    [[ -n "$scale" ]] || scale="$FALLBACK_SCALE"
+    printf '%s\n%s\n' "$mode" "$scale" > "$STATE"
+    apply "$mode" "$STREAM_SCALE"
+    echo "sunshine-host-scale: $OUT -> $mode scale=$STREAM_SCALE (was $scale)"
+    ;;
+  stop)
+    mode="$FALLBACK_MODE"; scale="$FALLBACK_SCALE"
+    if [[ -r "$STATE" ]]; then
+      { read -r m; read -r s; } < "$STATE"
+      [[ -n "${m:-}" ]] && mode="$m"
+      [[ -n "${s:-}" ]] && scale="$s"
+      rm -f "$STATE"
+    fi
+    apply "$mode" "$scale"
+    echo "sunshine-host-scale: $OUT restored to $mode scale=$scale"
+    ;;
+  *)
+    echo "usage: ${0##*/} start|stop" >&2; exit 2 ;;
+esac

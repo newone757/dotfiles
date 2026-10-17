@@ -1,0 +1,54 @@
+#!/bin/bash
+# Sunshine stream start:
+#   1. inhibit the idle lock (Omarchy lock has no unlock IPC - prevent, never undo)
+#   2. create the headless "sunshine" output at the client geometry, parked away
+#      from the physical monitors
+#   3. turn on the stream window rules (Big Picture + Proton games -> workspace
+#      "stream", which lives on the headless output) and pull over any that are
+#      already open
+#   4. focus the stream workspace so Moonlight keyboard/mouse input lands there
+# Physical monitors are never touched: an abrupt disconnect leaves the desktop
+# exactly as it was, and desktop windows are never on the captured output.
+# Undo lives in sunshine-stream-end, which is safe to run by hand.
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [[ -z ${WAYLAND_DISPLAY:-} ]]; then
+  for s in "$XDG_RUNTIME_DIR"/wayland-[0-9]*; do
+    [[ -S "$s" ]] && { export WAYLAND_DISPLAY="${s##*/}"; break; }
+  done
+fi
+if [[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+  export HYPRLAND_INSTANCE_SIGNATURE="$(ls -t "$XDG_RUNTIME_DIR/hypr" 2>/dev/null | head -1)"
+fi
+
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/sunshine-prep.log"
+mkdir -p "${LOG%/*}"
+echo "$(date '+%F %T') begin client=${SUNSHINE_CLIENT_NAME:-?} ${SUNSHINE_CLIENT_WIDTH:-?}x${SUNSHINE_CLIENT_HEIGHT:-?}@${SUNSHINE_CLIENT_FPS:-?} hdr=${SUNSHINE_CLIENT_HDR:-?} app=${SUNSHINE_APP_NAME:-?}" >> "$LOG"
+
+# 1. idle-lock inhibit (nested counter, read by ~/.local/bin/screensaver-inhibited)
+F=/tmp/screensaver_inhibit_count
+exec 9>"$F.lock"; flock 9
+c=$(cat "$F" 2>/dev/null); c=${c:-0}; echo $((c + 1)) > "$F"
+flock -u 9
+
+
+# 2. headless output sized to the client
+~/.local/bin/sunshine-virtual-display start >> "$LOG" 2>&1
+
+# 3. stream window rules on, and move already-open games/Big Picture across
+touch "$XDG_RUNTIME_DIR/sunshine-streaming"
+hyprctl repl 'StreamSetRules(true) return "ok"' >/dev/null 2>&1
+hyprctl clients -j 2>/dev/null \
+  | jq -r '.[] | select((.class | test("^steam_app_")) or (.class == "steam" and (.title | contains("Big Picture")))) | .address' \
+  | while read -r a; do
+      hyprctl repl "hl.dispatch(hl.dsp.window.move({ workspace = \"name:stream\", follow = false, window = \"address:$a\" })) return 'ok'" >/dev/null 2>&1
+      echo "  moved $a to stream" >> "$LOG"
+    done
+
+# games launched for the stream should size to it
+~/.local/bin/xwayland-primary
+
+# 4. focus the stream workspace
+hyprctl repl 'hl.dispatch(hl.dsp.focus({ workspace = "name:stream" })) return "ok"' >/dev/null 2>&1
+
+echo "  monitors: $(hyprctl monitors -j 2>/dev/null | jq -c '[.[] | "\(.name) \(.width)x\(.height)@\(.x),\(.y) ws=\(.activeWorkspace.name)"]')" >> "$LOG"
+exit 0
