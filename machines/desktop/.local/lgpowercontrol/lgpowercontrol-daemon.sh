@@ -97,6 +97,11 @@ BLANK_TV_FAILED=0
 # Serializes blank vs restore. Both take this before touching TV power, so a
 # blank that is still settling cannot land after a restore has already run.
 TV_STATE_LOCK=/tmp/lgpowercontrol-tv-state.lock
+
+# Present after a deep power_off succeeded, until the next restore. Lets
+# do_blank tell "TV unreachable because it is off" (done) from "TV unreachable
+# because WebOS is busy with the screen lit" (retry).
+DEEP_OFF_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-deep-off"
 # ---------------------------------------------------------------------------
 
 log() { echo "$*" | logger --tag lgpowercontrol-daemon; }
@@ -197,6 +202,10 @@ do_blank() {
     state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>/dev/null)
     case "$state" in
       *"'state': 'Screen Off'"*) ;;
+      "") [[ -e "$DEEP_OFF_FILE" ]] || {
+            BLANK_TV_FAILED=1
+            log "WARN: turn_screen_off failed (state: unreachable; ${out##*$'\n'})"
+          } ;;
       *)
         BLANK_TV_FAILED=1
         log "WARN: turn_screen_off failed (state: ${state:-unreachable}; ${out##*$'\n'})"
@@ -351,10 +360,12 @@ tv_deep_off() {
         ;;
       *)
         log "post power_off state: $state"
+        touch "$DEEP_OFF_FILE"
         ;;
     esac
   elif (( rc == 0 )); then
     log "TV unreachable after a successful power_off, as expected when it powers down"
+    touch "$DEEP_OFF_FILE"
   else
     # Do NOT call this success. An unreachable TV looks identical whether it
     # powered down or is merely refusing connections with the screen off, and
@@ -367,6 +378,7 @@ tv_deep_off() {
 
 tv_restore() {
   log "active -- restoring displays"
+  rm -f "$DEEP_OFF_FILE"
   # Blocks until any in-flight blank finishes, so restore is always last.
   exec 8>"$TV_STATE_LOCK"
   flock 8
@@ -381,7 +393,7 @@ tv_restore() {
 # --- activity monitor -----------------------------------------------------
 # Separate 3s IdleMonitor so the first real input after a stream ends is seen
 # immediately, rather than waiting on the shell's 5-minute idle.
-rm -f "$HOLD_FILE" "$ACTIVITY_FILE"
+rm -f "$HOLD_FILE" "$ACTIVITY_FILE" "$DEEP_OFF_FILE"
 quickshell -p "$HOME/.local/lgpowercontrol/activity-monitor/shell.qml" 2>&1 |
   while IFS= read -r line; do
     case "$line" in
@@ -395,6 +407,7 @@ activity() { cat "$ACTIVITY_FILE" 2>/dev/null; }
 # --- state machine ---------------------------------------------------------
 dark=0
 dark_at=0
+blank_pid=0
 post_stream_quiet=0
 escalated=0
 
@@ -427,7 +440,18 @@ while true; do
       dark_at=$(date +%s)
       escalated=0
       tv_blank_loop &
-    elif (( ! escalated && DEEP_AFTER_DARK_SECS > 0 )); then
+      blank_pid=$!
+    elif ! kill -0 "$blank_pid" 2>/dev/null; then
+      # The blank loop polls is_dark on its own 5s clock. Stream start flips
+      # the shell to active ~1s before the hold file exists; if that poll lands
+      # in the gap the loop exits, but this loop never saw is_dark go false, so
+      # nothing re-blanked afterwards. 2026-10-17 19:01: the shell's wake lit
+      # DP-6 and it stayed on until 21:33 while the TV was held dark.
+      log "blank loop exited while still dark -- restarting it"
+      tv_blank_loop &
+      blank_pid=$!
+    fi
+    if (( dark && ! escalated && DEEP_AFTER_DARK_SECS > 0 )); then
       if (( $(date +%s) - dark_at >= DEEP_AFTER_DARK_SECS )); then
         escalated=1
         tv_deep_off

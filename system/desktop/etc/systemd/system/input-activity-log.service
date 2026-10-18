@@ -1,0 +1,12 @@
+[Unit]
+Description=Log which input device is active (phantom display-wake tracing)
+Documentation=file:/usr/local/lib/input-activity-log.sh
+
+[Service]
+ExecStart=/usr/bin/bash /usr/local/lib/input-activity-log.sh
+SyslogIdentifier=input-activity
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
