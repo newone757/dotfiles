@@ -84,14 +84,19 @@ BLANK_POLL_SECS=5
 # lit came from event logic being subtly wrong, so this checks the device
 # itself rather than trusting our own bookkeeping. One WebOS query per interval.
 TV_VERIFY_SECS=300
-STREAM_VERIFY_SECS=60
 
-# Present while a Moonlight stream found the displays dark: they stay dark for
-# the rest of the stream AND after it ends, until real input at this desk.
-HOLD_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-hold"
+# Fallback when WebOS will not confirm the blank. 2026-10-25 09:32-09:51: the
+# daemon logged a normal blank, every verify was silent, and both screens were
+# lit when the user came back. A verify that gets NO answer used to count as
+# "fine". Now each unanswered verify (or an Active screen we fail to re-blank)
+# is a miss; after a miss, re-check every TV_RECHECK_SECS instead of waiting
+# out TV_VERIFY_SECS, and after TV_MISS_LIMIT misses in a row cut the TV's
+# HDMI signal from this side. The TV shows a "No Signal" banner and then
+# sleeps on its own -- worse than turn_screen_off, better than a lit panel.
+PRIMARY=HDMI-A-2
+TV_RECHECK_SECS=60
+TV_MISS_LIMIT=2
 
-# Last idle/active reading from activity-monitor/shell.qml (3s threshold).
-ACTIVITY_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-activity"
 BLANK_TV_FAILED=0
 
 # Serializes blank vs restore. Both take this before touching TV power, so a
@@ -102,6 +107,10 @@ TV_STATE_LOCK=/tmp/lgpowercontrol-tv-state.lock
 # do_blank tell "TV unreachable because it is off" (done) from "TV unreachable
 # because WebOS is busy with the screen lit" (retry).
 DEEP_OFF_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-deep-off"
+
+# Present while HDMI-A-2 is DPMS'd off by the fallback above, until restore.
+# Lives in XDG_RUNTIME_DIR so a daemon restart can still undo it.
+HDMI_CUT_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-hdmi-cut"
 # ---------------------------------------------------------------------------
 
 log() { echo "$*" | logger --tag lgpowercontrol-daemon; }
@@ -125,32 +134,14 @@ is_idle() {
 # 2026-10-17: lock and screensaver were turned off for Moonlight -- a locked
 # session needs a password typed on devices with no keyboard. Blanking now
 # keys off idle; a manual lock (SUPER+CTRL+L) still blanks immediately.
-# A Moonlight session is running (sunshine-stream-begin/-end in ~/.local/bin).
-# Requires BOTH the flag file and the headless output: a stale flag left by a
-# stream that died without running -end must never keep the TV dark while
-# someone is sitting at it.
-is_streaming() {
-  [[ -e "$XDG_RUNTIME_DIR/sunshine-streaming" ]] &&
-    hyprctl monitors -j 2>/dev/null | jq -e 'any(.[]; .name == "sunshine")' >/dev/null 2>&1
-}
-
-# Displays should be dark when idle, manually locked, or held dark.
 #
-# Streaming must not change the physical displays in EITHER direction: dark
-# when a stream starts -> dark until someone touches this PC (not "until the
-# stream ends"); lit when it starts -> left alone. Stream input is ordinary
-# input to the shell, so the dark case needs the hold, otherwise the first
-# Moonlight keypress would light the TV in an empty room.
-#
-# Known limit: displays lit at stream start stay lit for the whole stream,
-# since stream input keeps resetting idle and cannot be told apart from local
-# input without raw evdev access (user is not in `input`).
-is_held() {
-  [[ -e "$HOLD_FILE" ]]
-}
-
+# 2026-10-25: Moonlight/Sunshine streams are NOT special-cased any more. The
+# old "stream started while dark -> hold the desk dark" logic re-blanked the
+# screens every 5s while the user sat at the desk (a stream that failed to
+# connect left its headless output up). Streams now idle like anything else:
+# stream input counts as activity, same as local input.
 is_dark() {
-  is_locked || is_idle || is_held
+  is_locked || is_idle
 }
 
 # Keep the displays blanked for as long as the session is locked.
@@ -173,9 +164,29 @@ is_dark() {
 # actually care about: is the panel on while the session is locked? That covers
 # the shell, our own scripts, and anything else, without having to know about
 # them.
-panel_is_on() {
+output_is_on() {
   hyprctl monitors -j 2>/dev/null \
-    | jq -e --arg m "$SECONDARY" 'any(.[]; .name == $m and .dpmsStatus == true)' >/dev/null 2>&1
+    | jq -e --arg m "$1" 'any(.[]; .name == $m and .dpmsStatus == true)' >/dev/null 2>&1
+}
+
+panel_is_on() { output_is_on "$SECONDARY"; }
+
+# Last resort when WebOS will not confirm the blank: see TV_MISS_LIMIT.
+cut_hdmi() {
+  exec 8>"$TV_STATE_LOCK"
+  flock 8
+  if is_dark; then
+    hyprctl dispatch "hl.dsp.dpms({ action = \"disable\", monitor = \"$PRIMARY\" })" >/dev/null 2>&1
+    touch "$HDMI_CUT_FILE"
+  fi
+  flock -u 8
+}
+
+uncut_hdmi() {
+  [[ -e "$HDMI_CUT_FILE" ]] || return 0
+  hyprctl dispatch "hl.dsp.dpms({ action = \"enable\", monitor = \"$PRIMARY\" })" >/dev/null 2>&1
+  rm -f "$HDMI_CUT_FILE"
+  log "HDMI-A-2 signal restored"
 }
 
 do_blank() {
@@ -231,7 +242,7 @@ tv_blank_loop() {
   #
   # Once we wake the TV we owe it a blank, and only an unlock or an actual
   # re-blank may clear that debt.
-  local awake_since=0 tv_awake=0 last_verify=0 state verify_every
+  local awake_since=0 tv_awake=0 last_verify=0 state verify_every tv_misses=0
   last_verify=$(date +%s)
 
   log "idle/locked -- blanking panel (TV stays powered)"
@@ -244,24 +255,18 @@ tv_blank_loop() {
     log "blank aborted -- activity/unlock during the ${BLANK_SETTLE_SECS}s settle"
     return
   fi
+  # A failed first blank is a miss: re-check in TV_RECHECK_SECS, not 5 min.
+  (( BLANK_TV_FAILED )) && tv_misses=1
 
   while is_dark; do
     sleep "$BLANK_POLL_SECS"
     is_dark || break
 
-    # While held, the shell's own wake (omarchy-system-wake on activity)
-    # turns DP-6 back on in response to STREAM input. Nobody is at the desk:
-    # put it straight back out instead of waking the TV for the 90s grace.
-    if is_held && { panel_is_on || (( tv_awake )); }; then
-      log "panel woke while held dark -- re-blanking"
-      do_blank
-      awake_since=0
-      # Starting a stream adds the headless output, and that modeset
-      # renegotiates HDMI -- the TV lights up and is unresponsive to WebOS for
-      # a while (2026-10-17: lit 13:52-13:56 until the 5-min verify caught
-      # it). Keep the debt and retry next pass until the TV takes it.
-      tv_awake=$BLANK_TV_FAILED
-      continue
+    # Anything that wakes outputs without ending idle would undo the cut.
+    # Keep it cut while dark.
+    if [[ -e "$HDMI_CUT_FILE" ]] && output_is_on "$PRIMARY"; then
+      log "HDMI-A-2 came back on while cut -- cutting again"
+      cut_hdmi
     fi
 
     if panel_is_on || (( tv_awake )); then
@@ -291,19 +296,37 @@ tv_blank_loop() {
       # wake, a watcher that missed the shell's own wake, and a re-blank
       # obligation that evaporated), each a different hole in the event logic.
       # This does not care why the screen is on -- only that it should not be.
-      # Check far more often mid-stream: nobody is at the desk to notice a lit
-      # panel, and stream start/stop are exactly when the TV gets re-lit.
       verify_every=$TV_VERIFY_SECS
-      is_held && verify_every=$STREAM_VERIFY_SECS
-      if (( $(date +%s) - last_verify >= verify_every )); then
+      (( tv_misses )) && verify_every=$TV_RECHECK_SECS
+      # Nothing to verify once the TV is deep-off (unreachable is expected)
+      # or its signal is already cut.
+      if [[ ! -e "$DEEP_OFF_FILE" && ! -e "$HDMI_CUT_FILE" ]] &&
+        (( $(date +%s) - last_verify >= verify_every )); then
         last_verify=$(date +%s)
         state=$(timeout 15 "$BSCPYLGTV" "$TV_IP" get_power_state 2>/dev/null)
         case "$state" in
           *"'state': 'Active'"*)
             log "VERIFY: TV screen is on while locked -- blanking again"
-            do_blank && log "re-blanked (verify)"
+            if do_blank && (( ! BLANK_TV_FAILED )); then
+              log "re-blanked (verify)"
+              tv_misses=0
+            else
+              tv_misses=$((tv_misses + 1))
+            fi
+            ;;
+          "")
+            tv_misses=$((tv_misses + 1))
+            log "VERIFY: TV did not answer (miss $tv_misses/$TV_MISS_LIMIT)"
+            ;;
+          *)
+            (( tv_misses )) && log "VERIFY: TV answered ($state) -- clearing misses"
+            tv_misses=0
             ;;
         esac
+        if (( tv_misses >= TV_MISS_LIMIT )) && is_dark; then
+          log "WARN: TV never confirmed its screen is off -- cutting the HDMI-A-2 signal instead"
+          cut_hdmi
+        fi
       fi
     fi
   done
@@ -382,6 +405,9 @@ tv_restore() {
   # Blocks until any in-flight blank finishes, so restore is always last.
   exec 8>"$TV_STATE_LOCK"
   flock 8
+  # Before tv-on.sh: if the TV slept on "No Signal", its slow path needs the
+  # signal back to do the HDMI handshake.
+  uncut_hdmi
   hyprctl dispatch "hl.dsp.dpms({ action = \"enable\", monitor = \"$SECONDARY\" })" >/dev/null 2>&1
   # tv-on.sh flocks and checks get_power_state itself, so it is safe to call
   # redundantly and picks the fast path (turn_screen_on) vs the slow one
@@ -390,50 +416,19 @@ tv_restore() {
   flock -u 8
 }
 
-# --- activity monitor -----------------------------------------------------
-# Separate 3s IdleMonitor so the first real input after a stream ends is seen
-# immediately, rather than waiting on the shell's 5-minute idle.
-rm -f "$HOLD_FILE" "$ACTIVITY_FILE" "$DEEP_OFF_FILE"
-quickshell -p "$HOME/.local/lgpowercontrol/activity-monitor/shell.qml" 2>&1 |
-  while IFS= read -r line; do
-    case "$line" in
-    *"ACTIVITY idle"*) echo idle >"$ACTIVITY_FILE" ;;
-    *"ACTIVITY active"*) echo active >"$ACTIVITY_FILE" ;;
-    esac
-  done &
-
-activity() { cat "$ACTIVITY_FILE" 2>/dev/null; }
+rm -f "$DEEP_OFF_FILE"
+# A restart mid-cut would otherwise leave HDMI-A-2 dark with nothing to undo it.
+uncut_hdmi
 
 # --- state machine ---------------------------------------------------------
 dark=0
 dark_at=0
 blank_pid=0
-post_stream_quiet=0
 escalated=0
 
 log "started (poll=${POLL_SECS}s, deep-off after ${DEEP_AFTER_DARK_SECS}s dark)"
 
 while true; do
-  # Evaluated BEFORE is_dark: sunshine-stream-begin creates the flag and output
-  # as a prep-cmd, before the client sends any input that would end idle.
-  if is_streaming; then
-    if (( dark )) && ! is_held; then
-      touch "$HOLD_FILE"
-      log "stream started with displays dark -- holding them dark"
-    fi
-    post_stream_quiet=0
-  elif is_held; then
-    # Stream is over. Release only on input that cannot be the stream's: wait
-    # for the stream's input to go quiet, then for input to start again.
-    if [[ $(activity) == idle ]]; then
-      post_stream_quiet=1
-    elif (( post_stream_quiet )) && [[ $(activity) == active ]]; then
-      rm -f "$HOLD_FILE"
-      post_stream_quiet=0
-      log "input at the desk after stream -- releasing hold"
-    fi
-  fi
-
   if is_dark; then
     if (( ! dark )); then
       dark=1
