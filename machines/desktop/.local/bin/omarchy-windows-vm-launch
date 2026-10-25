@@ -17,7 +17,6 @@
 
 set -uo pipefail
 
-VM=/usr/bin/omarchy-windows-vm
 LOG_FILE="$HOME/.local/state/omarchy/windows-vm-launch.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 # Keep the log from growing without bound.
@@ -37,10 +36,19 @@ case ${1:-} in
 --keep-alive | -k) ;; # accepted for compatibility; this is the default now
 esac
 
-priv() { sudo -n "$VM" __priv "$@"; }
+# Since Omarchy 4.0.4, `__priv` identifies its caller only through PKEXEC_UID,
+# so calling it straight through sudo fails with "cannot identify the user who
+# authorized this action". This root-owned shim (source in
+# ~/notes/windows-vm-shim) passes sudo's own SUDO_UID through as PKEXEC_UID and
+# allows only up_wait/status/down. Its sudoers rule is
+# /etc/sudoers.d/omarchy-windows-vm-shim.
+PRIV=/usr/local/libexec/omarchy-windows-vm-priv
+priv() { sudo -n "$PRIV" "$@"; }
 
 # No passwordless grant -> hand back to the packaged launcher (which prompts).
-if ! sudo -n "$VM" __priv status >/dev/null 2>&1; then
+# Probing via the shim also covers up_wait's identity check, since the shim
+# sets PKEXEC_UID for every action it runs.
+if ! priv status >/dev/null 2>&1; then
   exec omarchy-windows-vm launch "$@"
 fi
 
