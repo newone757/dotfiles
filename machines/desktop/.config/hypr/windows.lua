@@ -8,6 +8,12 @@
 -- before the page has loaded and set its <title>. Matches are regex, not Lua patterns.
 o.window("^brave-127\\.0\\.0\\.1__-Default$", { float = true, center = true, size = { 780, 900 } })
 
+-- Windows VM (omarchy-windows-vm-launch / omarchy-windows-vm launch): open it
+-- maximized so it fills the desktop even when single_window_aspect_ratio would
+-- square a lone window. Maximized, not fullscreen: the bar and gaps stay, and
+-- this is the same state Super+Alt+F ("Full width") toggles by hand.
+o.window({ class = "^xfreerdp3?$", title = "^Windows VM - Omarchy$" }, { maximize = true })
+
 -- Sunshine streaming: while a stream is live, Steam Big Picture and Proton games
 -- open on the "stream" workspace (headless "sunshine" output) instead of the
 -- desktop. Off otherwise, so local play is untouched. sunshine-stream-begin/end
