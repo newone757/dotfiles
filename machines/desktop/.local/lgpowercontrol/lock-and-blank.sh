@@ -27,7 +27,7 @@ set -uo pipefail
 
 BSCPYLGTV="$HOME/.local/lgpowercontrol/bscpylgtv/bin/bscpylgtvcommand"
 TV_IP=10.0.1.28
-SECONDARY=DP-6
+SECONDARY=$(~/.local/bin/display-name panel)
 
 is_locked() {
   omarchy-hyprland-session-locked

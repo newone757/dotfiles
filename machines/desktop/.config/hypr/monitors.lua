@@ -1,6 +1,8 @@
 -- Display layout, ported from Omarchy 3.8.4 monitors.conf.
 -- Staged 2026-08-30, BEFORE the Quattro upgrade. Not yet live.
 
+local displays = require("hypr.displays")
+
 -- 1x scaling — your displays are not retina-class.
 hl.env("GDK_SCALE", "1")
 
@@ -8,12 +10,12 @@ hl.env("GDK_SCALE", "1")
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 
 -- LG TV, primary, 4K120.
-hl.monitor({ output = "HDMI-A-2", mode = "3840x2160@120", position = "0x0", scale = 1 })
+hl.monitor({ output = displays.tv, mode = "3840x2160@120", position = "0x0", scale = 1 })
 
 -- Biomedical Systems Laboratory L2 touch strip, sits below the TV.
 -- 2160 = the TV's height, so this stacks directly underneath;
 -- 960 = (3840 - 1920) / 2, centering it horizontally.
-hl.monitor({ output = "DP-6", mode = "1920x720", position = "960x2160", scale = 1 })
+hl.monitor({ output = displays.panel, mode = "1920x720", position = "960x2160", scale = 1 })
 
 ------------------------------------------------------------------------------
 -- Workspace pinning — VERIFY SYNTAX AFTER UPGRADE
@@ -43,10 +45,10 @@ hl.monitor({ output = "DP-6", mode = "1920x720", position = "960x2160", scale = 
 -- Equivalent to the 3.8.4 hyprland.conf lines:
 --   workspace = 1, monitor:HDMI-A-2, default:true
 for _, ws in ipairs({ 1, 2, 3, 4, 5 }) do
-  hl.workspace_rule({ workspace = tostring(ws), monitor = "HDMI-A-2", default = ws == 1 })
+  hl.workspace_rule({ workspace = tostring(ws), monitor = displays.tv, default = ws == 1 })
 end
 
-hl.workspace_rule({ workspace = "6", monitor = "DP-6", default = true })
+hl.workspace_rule({ workspace = "6", monitor = displays.panel, default = true })
 
 -- Sunshine stream workspace. Lives on the headless "sunshine" output that
 -- ~/.local/bin/sunshine-virtual-display creates per stream; harmless when that
@@ -54,7 +56,7 @@ hl.workspace_rule({ workspace = "6", monitor = "DP-6", default = true })
 hl.workspace_rule({ workspace = "name:stream", monitor = "sunshine", default = true })
 
 -- Keep XWayland's primary output on the TV (or the Sunshine output mid-stream).
--- When HDMI-A-2 re-enumerates after DP-6, XWayland lists DP-6 first and Proton
+-- When the TV re-enumerates after the panel, XWayland lists the panel first and Proton
 -- games come up at 1920x720. The short delay lets XWayland see the new layout.
 for _, ev in ipairs({ "monitor.added", "monitor.removed", "monitor.layout_changed" }) do
   hl.on(ev, function()

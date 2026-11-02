@@ -16,7 +16,10 @@ LOG="${XDG_STATE_HOME:-$HOME/.local/state}/sunshine-prep.log"
 mkdir -p "${LOG%/*}"
 echo "$(date '+%F %T') end" >> "$LOG"
 
-PHYSICAL=(HDMI-A-2 DP-6)
+TV=$(~/.local/bin/display-name tv 2>>"$LOG")
+PANEL=$(~/.local/bin/display-name panel 2>>"$LOG")
+PHYSICAL=()
+for m in "$TV" "$PANEL"; do [[ -n $m ]] && PHYSICAL+=("$m"); done
 
 # 0. legacy safety net: the old setup disabled the physical monitors. Only
 #    re-enable one that is actually disabled -- re-applying a rule to a live
@@ -33,7 +36,7 @@ rm -f "$XDG_RUNTIME_DIR/sunshine-streaming"
 hyprctl repl 'StreamSetRules(false) return "ok"' >/dev/null 2>&1
 
 # 2. bring anything on the stream workspace back to the TV's current workspace
-dest=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.name=="HDMI-A-2") | .activeWorkspace.name')
+dest=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.name=="'"$TV"'") | .activeWorkspace.name')
 dest=${dest:-1}
 hyprctl clients -j 2>/dev/null | jq -r '.[] | select(.workspace.name=="stream") | .address' \
   | while read -r a; do

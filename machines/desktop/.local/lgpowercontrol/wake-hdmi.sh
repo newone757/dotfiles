@@ -23,6 +23,7 @@ for i in 1 2 3 4 5 6 7 8 9 10; do
 done
 
 # DPMS cycle to force HDMI renegotiation
-hyprctl dispatch 'hl.dsp.dpms({ action = "disable", monitor = "HDMI-A-2" })'
+TV=$(~/.local/bin/display-name tv)
+hyprctl dispatch "hl.dsp.dpms({ action = \"disable\", monitor = \"$TV\" })"
 sleep 1
-hyprctl dispatch 'hl.dsp.dpms({ action = "enable", monitor = "HDMI-A-2" })'
+hyprctl dispatch "hl.dsp.dpms({ action = \"enable\", monitor = \"$TV\" })"

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Raise HDMI-A-2's scale while a stream is running, so the 4K desktop is
+# Raise the TV's scale while a stream is running, so the 4K desktop is
 # readable on a smaller client panel, and restore it on disconnect.
 # Driven by Sunshine's global_prep_cmd.
 #
 # wlr-randr resets an output to its PREFERRED mode when --scale is passed on
-# its own. HDMI-A-2 prefers 3840x2160@60 but runs at 119.88, so the current
+# its own. The TV prefers 3840x2160@60 but runs at 119.88, so the current
 # mode is always re-asserted in the same call, or the TV silently drops to 60Hz.
 set -uo pipefail
 
-OUT=HDMI-A-2
+OUT="$(~/.local/bin/display-name tv)" || exit 1
 STREAM_SCALE=1.5
 FALLBACK_MODE="3840x2160@119.879997"
 FALLBACK_SCALE=1

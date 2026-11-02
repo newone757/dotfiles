@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Print the current connector name (e.g. HDMI-A-1) of a physical display.
+# Usage: display-name tv|panel
+#
+# Connector numbers are shared across GPUs and assigned in driver load order,
+# so they change when the iGPU and the 3080 swap order. Match on the EDID
+# description instead; the descriptions live in ~/.config/hypr/displays.lua.
+set -euo pipefail
+
+case "${1:-}" in
+  tv)    desc="LG Electronics LG TV SSCR2 0x01010101" ;;
+  panel) desc="Biomedical Systems Laboratory L2 L2-20230810" ;;
+  *)     echo "usage: display-name tv|panel" >&2; exit 2 ;;
+esac
+
+# Callers run from Sunshine, systemd units and Hyprland events; find the
+# session the same way sunshine-stream-end does when it isn't inherited.
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+  export HYPRLAND_INSTANCE_SIGNATURE="$(ls -t "$XDG_RUNTIME_DIR/hypr" 2>/dev/null | head -1)"
+fi
+
+name=$(hyprctl monitors all -j | jq -r --arg d "$desc" '.[] | select(.description == $d) | .name' | head -n1)
+if [[ -z $name ]]; then
+  echo "display-name: no monitor with description '$desc'" >&2
+  exit 1
+fi
+echo "$name"

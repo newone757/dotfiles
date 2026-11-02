@@ -1,7 +1,8 @@
 #!/bin/bash
-# Wake LG TV (10.0.1.28, MAC 00:a1:59:35:35:da) and re-handshake HDMI-A-2
+# Wake LG TV (10.0.1.28, MAC 00:a1:59:35:35:da) and re-handshake its HDMI link
 wakeonlan 00:a1:59:35:35:da
 sleep 5
-hyprctl keyword monitor HDMI-A-2,disable
+TV=$(~/.local/bin/display-name tv)
+hyprctl keyword monitor "$TV,disable"
 sleep 1
-hyprctl keyword monitor "HDMI-A-2,3840x2160@120,0x0,1"
+hyprctl keyword monitor "$TV,3840x2160@120,0x0,1"

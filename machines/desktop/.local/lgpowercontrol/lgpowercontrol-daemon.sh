@@ -53,7 +53,19 @@ set -uo pipefail
 # --- configuration ---------------------------------------------------------
 TV_IP=10.0.1.28
 TV_MAC=00:a1:59:35:35:da
-SECONDARY=DP-6
+# Connector names come from ~/.local/bin/display-name: they shift with GPU
+# driver load order. Retry briefly in case the unit starts before Hyprland
+# has enumerated the outputs.
+resolve_display() {
+  local i name
+  for i in $(seq 1 30); do
+    name=$("$HOME/.local/bin/display-name" "$1" 2>/dev/null) && { echo "$name"; return 0; }
+    sleep 1
+  done
+  echo "lgpowercontrol: could not resolve the $1 display" >&2
+  return 1
+}
+SECONDARY=$(resolve_display panel) || exit 1
 BSCPYLGTV="$HOME/.local/lgpowercontrol/bscpylgtv/bin/bscpylgtvcommand"
 
 POLL_SECS=2
@@ -93,7 +105,7 @@ TV_VERIFY_SECS=300
 # out TV_VERIFY_SECS, and after TV_MISS_LIMIT misses in a row cut the TV's
 # HDMI signal from this side. The TV shows a "No Signal" banner and then
 # sleeps on its own -- worse than turn_screen_off, better than a lit panel.
-PRIMARY=HDMI-A-2
+PRIMARY=$(resolve_display tv) || exit 1
 TV_RECHECK_SECS=60
 TV_MISS_LIMIT=2
 
@@ -186,7 +198,7 @@ uncut_hdmi() {
   [[ -e "$HDMI_CUT_FILE" ]] || return 0
   hyprctl dispatch "hl.dsp.dpms({ action = \"enable\", monitor = \"$PRIMARY\" })" >/dev/null 2>&1
   rm -f "$HDMI_CUT_FILE"
-  log "HDMI-A-2 signal restored"
+  log "$PRIMARY signal restored"
 }
 
 do_blank() {
@@ -265,7 +277,7 @@ tv_blank_loop() {
     # Anything that wakes outputs without ending idle would undo the cut.
     # Keep it cut while dark.
     if [[ -e "$HDMI_CUT_FILE" ]] && output_is_on "$PRIMARY"; then
-      log "HDMI-A-2 came back on while cut -- cutting again"
+      log "$PRIMARY came back on while cut -- cutting again"
       cut_hdmi
     fi
 
@@ -324,7 +336,7 @@ tv_blank_loop() {
             ;;
         esac
         if (( tv_misses >= TV_MISS_LIMIT )) && is_dark; then
-          log "WARN: TV never confirmed its screen is off -- cutting the HDMI-A-2 signal instead"
+          log "WARN: TV never confirmed its screen is off -- cutting the $PRIMARY signal instead"
           cut_hdmi
         fi
       fi

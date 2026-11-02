@@ -60,7 +60,7 @@ if (( ! saw_input )); then
 fi
 
 if is_locked; then
-    hyprctl dispatch 'hl.dsp.dpms({ action = "enable", monitor = "DP-6" })'
+    hyprctl dispatch "hl.dsp.dpms({ action = \"enable\", monitor = \"$(~/.local/bin/display-name panel)\" })"
     omarchy-brightness-keyboard restore
     "$HOME/.local/lgpowercontrol/tv-on.sh"
 fi

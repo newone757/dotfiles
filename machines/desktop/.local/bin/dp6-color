@@ -26,7 +26,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 CFG   = os.path.expanduser("~/.config/dp6-color")
 STATE = os.path.join(CFG, "state.json")
 PORT  = int(os.environ.get("DP6_PORT", "8765"))
-CONNECTOR = os.environ.get("DP6_CONNECTOR", "DP-6")
+CONNECTOR = os.environ.get("DP6_CONNECTOR") or subprocess.run(
+    [os.path.expanduser("~/.local/bin/display-name"), "panel"],
+    capture_output=True, text=True).stdout.strip() \
+    or sys.exit("dp6-color: could not find the L2 panel (display-name panel)")
 
 GAINS = [("r", "16", "Red"), ("g", "18", "Green"), ("b", "1A", "Blue")]
 FACTORY = {"channel": "g", "gain": 46, "brightness": 31, "contrast": 48}
