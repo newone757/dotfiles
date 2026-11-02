@@ -1,0 +1,5 @@
+# Docs and staging material that live in the repo but should not be linked into ~
+^/\.stow-local-ignore$
+^/omarchy4-upgrade-plan\.md$
+^/pre-quattro-inventory$
+^/quattro-staging$
