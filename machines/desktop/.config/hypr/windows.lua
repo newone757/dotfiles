@@ -40,3 +40,12 @@ hl.on("window.title", function(w)
     hl.dispatch(hl.dsp.window.move({ workspace = "name:stream", window = "address:" .. w.address }))
   end
 end)
+
+-- Bambu Studio: its popups (login sync prompt, etc.) can open off-screen,
+-- leaving the main window blocked by an invisible modal dialog. Center them.
+o.window({ class = "^BambuStudio$", float = true }, { center = true })
+
+-- Windows VM full desktop (omarchy-windows-vm via xfreerdp): open maximized so
+-- the single-window square aspect toggle doesn't shrink it to a 2160x2160
+-- square on the TV. Maximized keeps the bar and gaps, unlike full screen.
+o.window({ class = "^xfreerdp$", title = "^Windows VM" }, { maximize = true })
