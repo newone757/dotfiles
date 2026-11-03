@@ -87,3 +87,26 @@ o.bind("SUPER + GRAVE", "Lock + TV off", "~/.local/lgpowercontrol/lock-and-blank
 -- PRINT keeps working -- this is an addition, not a move.
 hl.unbind("SUPER + SHIFT + S")
 o.bind("SUPER + SHIFT + S", "Screenshot", "omarchy-capture-screenshot")
+
+------------------------------------------------------------------------------
+-- 6. SUPER + mouse wheel follows the workspace's layout
+------------------------------------------------------------------------------
+-- Omarchy binds SUPER + wheel to the next/previous workspace. On a workspace
+-- using the scrolling layout (the panel's workspace 6), it moves focus to the
+-- next/previous column instead, which scrolls the strip. Matches the 4-finger
+-- swipe in input.lua. Elsewhere it stays on the current monitor (m+1, not e+1),
+-- so it never lands on the panel's workspace and gets stuck there.
+local function wheel(step)
+  return function()
+    local ws = hl.get_active_workspace()
+    if ws and ws.tiled_layout == "scrolling" then
+      hl.dispatch(hl.dsp.focus({ direction = step > 0 and "r" or "l" }))
+    else
+      hl.dispatch(hl.dsp.focus({ workspace = step > 0 and "m+1" or "m-1" }))
+    end
+  end
+end
+hl.unbind("SUPER + mouse_down")
+hl.unbind("SUPER + mouse_up")
+o.bind("SUPER + mouse_down", "Next workspace, or next column when scrolling", wheel(1))
+o.bind("SUPER + mouse_up", "Previous workspace, or previous column when scrolling", wheel(-1))
