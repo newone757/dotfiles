@@ -1,0 +1,49 @@
+#!/bin/bash
+# Expose removable media (SD cards) inside the Windows VM.
+#
+# udisks mounts cards at /run/media/lonnie/<LABEL>. The stock compose only shares
+# ~/Windows as /shared, and Docker binds are rprivate, so a card inserted after
+# the container started would never show up. This adds one rslave bind:
+#
+#   /run/media -> /shared/media      (Windows: \\host.lan\Data\media\lonnie\<LABEL>)
+#
+# rslave lets later host mounts propagate in (/run is a shared mount), never out.
+#
+# The compose is root-owned and only `omarchy-windows-vm install` rewrites it,
+# so this survives Omarchy updates but NOT a reinstall: re-run it after one.
+# omarchy-windows-vm's mount checks only count the exact `:/shared` and
+# `:/storage` lines, so this extra line passes them. Idempotent.
+#
+# Usage: sudo omarchy-windows-vm-media-share
+# Then restart the VM (omarchy-windows-vm stop, then launch) to apply.
+
+set -euo pipefail
+
+COMPOSE=/var/lib/omarchy/windows/docker-compose.yml
+LINE='      - /run/media:/shared/media:rslave'
+
+((EUID == 0)) || { echo "run with sudo" >&2; exit 1; }
+[[ -f $COMPOSE && ! -L $COMPOSE ]] || { echo "no compose at $COMPOSE (run omarchy-windows-vm install first)" >&2; exit 1; }
+
+if grep -qxF -- "$LINE" "$COMPOSE"; then
+  echo "Already present in $COMPOSE"
+  exit 0
+fi
+
+# Insert right after the single `- <anchor>:/shared` volume line.
+[[ $(grep -cE '^[[:space:]]*-[[:space:]]*/[^:]*:/shared$' "$COMPOSE") == 1 ]] || {
+  echo "expected exactly one :/shared volume line in $COMPOSE; not touching it" >&2
+  exit 1
+}
+
+tmp=$(mktemp "$(dirname "$COMPOSE")/.compose.XXXXXX")
+trap 'rm -f -- "$tmp"' EXIT
+awk -v line="$LINE" '{ print } /^[[:space:]]*-[[:space:]]*\/[^:]*:\/shared$/ { print line }' "$COMPOSE" >"$tmp"
+chown --reference="$COMPOSE" -- "$tmp"
+chmod --reference="$COMPOSE" -- "$tmp"
+mv -fT -- "$tmp" "$COMPOSE"
+trap - EXIT
+
+echo "Added to $COMPOSE:"
+echo "$LINE"
+echo "Restart the VM to apply: omarchy-windows-vm stop, then launch."

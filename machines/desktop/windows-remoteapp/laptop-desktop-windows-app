@@ -1,0 +1,111 @@
+#!/bin/bash
+# MacBook (Asahi) -> desktop `cave`: open one Windows program from the desktop's
+# Omarchy VM as its own local window (RDP RemoteApp over an SSH tunnel).
+#
+#   desktop-windows-app lightroom | captureone | 'C:\path\to\program.exe'
+#
+# Install on the laptop: copy to ~/.local/bin/desktop-windows-app, chmod +x.
+# Needs on the laptop: FreeRDP 3's SDL client (sdl-freerdp3, or sdl-freerdp on
+# distros that ship 3 under the old name) and SSH key access to the desktop.
+# Not xfreerdp: its RemoteApp windows go through XWayland and never pass a
+# window resize on to Windows (tested on the desktop, 2026-11-02).
+#
+# The desktop's polkit rule (49-omarchy-windows-vm.rules) lets this start the VM
+# over SSH without a prompt. RDP credentials are read from the desktop's private
+# ~/.config/windows/credentials at launch; nothing is stored here.
+#
+# Windows allows one session: connecting here takes over the session from the
+# desktop (or another app window), and the apps keep running.
+
+set -uo pipefail
+
+DESKTOP=${DESKTOP_HOST:-lonnie@10.0.1.22}
+LOCAL_PORT=${DESKTOP_RDP_PORT:-13389}
+CONTROL="${XDG_RUNTIME_DIR:-/tmp}/desktop-windows-app.ssh"
+VM=/usr/bin/omarchy-windows-vm
+
+case ${1:-} in
+lightroom)
+  NAME="Lightroom"
+  PROGRAM='C:\Program Files\Adobe\Adobe Lightroom CC\lightroom.exe'
+  ;;
+captureone)
+  NAME="Capture One"
+  PROGRAM='C:\Program Files\Capture One\Capture One\CaptureOne.exe'
+  ;;
+[A-Za-z]:\\*)
+  PROGRAM=$1
+  NAME=${PROGRAM##*\\}
+  ;;
+*)
+  echo "usage: desktop-windows-app lightroom|captureone|'C:\\path\\to\\program.exe'" >&2
+  exit 2
+  ;;
+esac
+
+notify() { command -v notify-send >/dev/null && notify-send "Windows VM" "$1"; echo "$1"; }
+
+FREERDP=$(command -v sdl-freerdp3 || command -v sdl-freerdp) || {
+  notify "FreeRDP 3's SDL client is not installed (sdl-freerdp3)"
+  exit 1
+}
+
+# One shared SSH master carries the commands and the tunnel; it exits with us.
+ssh -fN -M -S "$CONTROL" -o ControlPersist=no -o ExitOnForwardFailure=yes \
+  -o ServerAliveInterval=15 -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:3389" "$DESKTOP" || {
+  notify "Cannot reach $DESKTOP"
+  exit 1
+}
+trap 'ssh -S "$CONTROL" -O exit "$DESKTOP" 2>/dev/null' EXIT
+remote() { ssh -S "$CONTROL" "$DESKTOP" "$@"; }
+
+BOOTED=false
+if [[ $(remote pkexec "$VM" __priv status 2>/dev/null) != running ]]; then
+  notify "Starting Windows on the desktop for $NAME..."
+  remote pkexec "$VM" __priv up_wait || { notify "Failed to start the Windows VM"; exit 1; }
+  BOOTED=true
+fi
+
+WIN_USER="" WIN_PASS=""
+while IFS='=' read -r key value; do
+  case $key in
+  USERNAME) WIN_USER=$value ;;
+  PASSWORD) WIN_PASS=$value ;;
+  esac
+done < <(remote cat .config/windows/credentials)
+[[ -n $WIN_USER && -n $WIN_PASS ]] || { notify "No RDP credentials on the desktop"; exit 1; }
+
+# FreeRDP 3 tries Kerberos first; with a sample realm in krb5.conf every connect
+# stalls ~23s. A realm-less config falls straight through to NTLM.
+KRB5_CONF="$HOME/.config/windows/krb5.conf"
+mkdir -p "$(dirname "$KRB5_CONF")"
+[[ -f $KRB5_CONF ]] || printf '[libdefaults]\n  dns_lookup_kdc = false\n  dns_lookup_realm = false\n' >"$KRB5_CONF"
+export KRB5_CONFIG="$KRB5_CONF"
+
+# Guest-side scaling for this client only: ~/.config/windows/scale (100-500).
+SCALE=""
+[[ -r $HOME/.config/windows/scale ]] && SCALE=$(tr -cd '0-9' <"$HOME/.config/windows/scale")
+RDP_SCALE=""
+if ((SCALE > 100 && SCALE <= 500)) 2>/dev/null; then
+  if ((SCALE >= 160)); then dev=180; elif ((SCALE >= 120)); then dev=140; else dev=100; fi
+  RDP_SCALE="/scale-desktop:$SCALE /scale-device:$dev"
+fi
+
+connect() {
+  # shellcheck disable=SC2086
+  "$FREERDP" /u:"$WIN_USER" /p:"$WIN_PASS" /v:127.0.0.1:"$LOCAL_PORT" /cert:ignore \
+    /app:program:"$PROGRAM",name:"$NAME" \
+    /sound /microphone /clipboard $RDP_SCALE
+}
+
+# Right after a boot the guest can drop the first logon; retry only then, so a
+# short exit caused by another client taking over the session is left alone.
+attempt=1
+while :; do
+  started=$SECONDS
+  connect
+  rc=$?
+  [[ $BOOTED == true ]] && ((rc != 0 && SECONDS - started < 25 && attempt < 5)) || break
+  attempt=$((attempt + 1))
+  sleep 5
+done

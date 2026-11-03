@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+; Let RDP clients launch any installed program as a RemoteApp (FreeRDP /app:),
+; not only programs on the RemoteApp allow list. Used by ~/.local/bin/windows-app.
+; Revert: set fDisabledAllowList to 0.
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList]
+"fDisabledAllowList"=dword:00000001
+

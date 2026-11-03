@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Windows
+Comment=Full Windows desktop over RDP; closing the window leaves the VM and its apps running
+Exec=uwsm app -- omarchy-windows-vm-launch
+Icon=windows
+Terminal=false
+Type=Application
+Categories=System;Emulator;
+# Replaces Omarchy's windows-vm.desktop (written by `omarchy-windows-vm install`),
+# whose `omarchy-windows-vm launch` stops the VM -- and every running app with
+# it -- when the window closes. That file is kept, marked Hidden, because the
+# Omarchy menu uses its presence to tell Windows is installed; a reinstall
+# rewrites it, so re-add Hidden=true / NoDisplay=true afterwards.

@@ -1,0 +1,25 @@
+--- a/client/SDL/SDL3/sdl_rail_window.cpp
++++ b/client/SDL/SDL3/sdl_rail_window.cpp
+@@ -779,15 +779,20 @@
+ 	/* Suppress server shadow frames and unparented full-display overlays. */
+ 	const bool unplaceable =
+ 	    _frame || (_overlay && !railPlatformCaps().supportsWindowPositions && isFullDisplaySize());
+-	/* Layered window is shown only when anchored to an adjoining visible popup or overlay. */
++	/* Layered window is shown only when anchored to an adjoining visible popup or overlay, or
++	 * when it takes input: Windows' menu shadows are click-through (WS_EX_TRANSPARENT), while
++	 * standalone layered flyouts (e.g. Lightroom's sort and overflow menus) are not. */
++	const bool standaloneLayered = (_exStyle & WS_EX_TRANSPARENT) == 0;
+ 	const bool drawable =
+ 	    _visible && (_windowRect.w > 0) && (_windowRect.h > 0) && popupReady && !unplaceable &&
+-	    (!_layered || (_hasGfx && !_visRects.empty() && (_shadowAnchored || _overlay)));
++	    (!_layered ||
++	     (_hasGfx && !_visRects.empty() && (_shadowAnchored || _overlay || standaloneLayered)));
+ 
+ 	if (!drawable)
+ 	{
+ 		/* Log standalone layered windows suppressed by popup shadow heuristic. */
+ 		if (_layered && _hasGfx && !_visRects.empty() && !_shadowAnchored && !_overlay &&
++		    !standaloneLayered &&
+ 		    !_shadowSuppressLogged)
+ 		{
+ 			_shadowSuppressLogged = true;

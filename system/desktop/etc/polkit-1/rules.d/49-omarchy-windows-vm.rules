@@ -1,0 +1,18 @@
+// Start, query and stop the Omarchy Windows VM without a password prompt.
+//
+// omarchy-windows-vm elevates its privileged actions with
+// `pkexec /usr/bin/omarchy-windows-vm __priv <action>`. Allow lonnie exactly the
+// three lifecycle actions the RemoteApp launchers, the full-desktop launcher and
+// the MacBook (over SSH, so no local/active session check) need. install's
+// write_compose and remove still prompt, and so does anything else run through
+// pkexec. Install: sudo install -m 644 <this file> /etc/polkit-1/rules.d/
+polkit.addRule(function (action, subject) {
+  if (action.id !== "org.freedesktop.policykit.exec" || subject.user !== "lonnie") return;
+  if (action.lookup("program") !== "/usr/bin/omarchy-windows-vm") return;
+  var cmd = action.lookup("command_line");
+  if (cmd === "/usr/bin/omarchy-windows-vm __priv up_wait" ||
+      cmd === "/usr/bin/omarchy-windows-vm __priv status" ||
+      cmd === "/usr/bin/omarchy-windows-vm __priv down") {
+    return polkit.Result.YES;
+  }
+});

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Capture One
+Comment=Capture One from the Windows VM as its own window (RemoteApp)
+Exec=uwsm app -- windows-app captureone
+Icon=windows-captureone
+Terminal=false
+Type=Application
+Categories=Graphics;Photography;
+StartupWMClass=com.freerdp.client.sdl3

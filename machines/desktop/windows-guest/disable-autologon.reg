@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+
+; Stop signing in on the VM console at boot. With autologon on, every boot starts a
+; console session, and the first RDP/RemoteApp connect has to take it over ("Please
+; wait for ... to respond", ~35 s). Off, the first connect simply starts the session.
+; Also removes the plaintext autologon password Windows keeps for it.
+; Side effect: the web console (127.0.0.1:8006) shows the sign-in screen.
+; Revert: AutoAdminLogon "1" and set DefaultPassword again.
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+"AutoAdminLogon"="0"
+"DefaultPassword"=-
+

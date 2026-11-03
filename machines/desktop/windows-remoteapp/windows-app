@@ -1,0 +1,107 @@
+#!/bin/bash
+# Open one Windows program from the Omarchy VM as its own Hyprland window
+# (RDP RemoteApp), starting the VM first if it is not running.
+#
+#   windows-app lightroom | captureone | 'C:\path\to\program.exe'
+#
+# Needs RemoteApp for unlisted programs enabled once inside Windows
+# (~/dotfiles/machines/desktop/windows-guest/enable-remoteapp.reg).
+#
+# Windows (client SKUs) allows one session per user. A new connection -- this
+# script for another app, or the full desktop via omarchy-windows-vm-launch --
+# takes over that same session, and the previous client window closes. Apps
+# keep running; a RemoteApp reconnect redraws every open app window.
+#
+# Closing the app leaves the VM running. Shut it down from inside Windows or
+# with: omarchy-windows-vm stop
+
+set -uo pipefail
+source "$HOME/.local/lib/windows-vm.sh"
+
+LOG_FILE="$HOME/.local/state/omarchy/windows-app.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+[[ -f $LOG_FILE ]] && (($(stat -c %s "$LOG_FILE" 2>/dev/null || echo 0) > 1048576)) &&
+  tail -c 262144 "$LOG_FILE" >"$LOG_FILE.tmp" && mv -f "$LOG_FILE.tmp" "$LOG_FILE"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+case ${1:-} in
+lightroom)
+  NAME="Lightroom"
+  PROGRAM='C:\Program Files\Adobe\Adobe Lightroom CC\lightroom.exe'
+  ;;
+captureone)
+  NAME="Capture One"
+  PROGRAM='C:\Program Files\Capture One\Capture One\CaptureOne.exe'
+  ;;
+[A-Za-z]:\\*)
+  PROGRAM=$1
+  NAME=${PROGRAM##*\\}
+  ;;
+*)
+  echo "usage: windows-app lightroom|captureone|'C:\\path\\to\\program.exe'" >&2
+  exit 2
+  ;;
+esac
+echo "=== $(date -Is) $NAME ==="
+
+if ! winvm_credentials; then
+  omarchy-notification-send -u critical "Windows VM" "Not configured. Run: omarchy-windows-vm install"
+  exit 1
+fi
+
+BOOTED=false
+if ! winvm_running; then
+  omarchy-notification-send "Windows VM" "Starting Windows for $NAME..."
+  if ! winvm_priv up_wait; then
+    omarchy-notification-send -u critical "Windows VM" "Failed to start Windows VM"
+    exit 1
+  fi
+  BOOTED=true
+fi
+
+winvm_krb5
+winvm_scale
+
+# The SDL client, not xfreerdp3. xfreerdp3's RemoteApp windows run through
+# XWayland and never pass a Hyprland resize on to Windows (the app keeps its old
+# size and the rest of the tile is black; with /gfx:AVC444 they were black
+# outright). sdl-freerdp3 is native Wayland and Windows follows every tile or
+# float resize. Its RemoteApp support is marked experimental. Windows get the
+# class com.freerdp.client.sdl3 and the program's own title.
+#
+# Prefer the locally patched build (~/dotfiles/machines/desktop/windows-remoteapp/freerdp-sdl-patch):
+# stock sdl-freerdp3 hides standalone layered popups such as Lightroom's sort
+# and overflow menus.
+SDL_FREERDP="$HOME/.local/opt/freerdp-sdl/bin/sdl-freerdp3"
+[[ -x $SDL_FREERDP ]] || SDL_FREERDP=sdl-freerdp3
+echo "client: $SDL_FREERDP"
+
+connect() {
+  # shellcheck disable=SC2086
+  "$SDL_FREERDP" /u:"$WIN_USER" /p:"$WIN_PASS" /v:127.0.0.1:3389 /cert:ignore \
+    /app:program:"$PROGRAM",name:"$NAME" \
+    /sound /microphone /clipboard $RDP_SCALE
+}
+
+# Right after boot the guest reports ready before RDP accepts logons, so the
+# first connect can be dropped server-side within seconds. Retry only in that
+# case: otherwise a short non-zero exit is usually another client taking over
+# the session, and reconnecting would steal it back.
+MIN_SESSION=25
+MAX_ATTEMPTS=5
+attempt=1
+while :; do
+  started=$SECONDS
+  connect
+  rc=$?
+  elapsed=$((SECONDS - started))
+  echo "xfreerdp3 exited $rc after ${elapsed}s"
+  [[ $BOOTED == true ]] && ((rc != 0 && elapsed < MIN_SESSION)) || break
+  if ((attempt >= MAX_ATTEMPTS)); then
+    omarchy-notification-send -u critical "Windows VM" \
+      "$NAME: RDP kept dropping after $MAX_ATTEMPTS attempts (last exit $rc). Log: $LOG_FILE"
+    break
+  fi
+  echo "guest probably still booting -- retry $((++attempt))/$MAX_ATTEMPTS in 5s"
+  sleep 5
+done
