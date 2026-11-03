@@ -17,3 +17,9 @@ __pycache__/
 **/iwd-credentials-backup/
 *.psk
 *.nmconnection
+
+# Sunshine runtime state -- written into the repo because ~/.config/sunshine is
+# a stow-folded link. Private key, pairing state and logs must never be pushed.
+machines/*/.config/sunshine/credentials/
+machines/*/.config/sunshine/sunshine_state.json
+machines/*/.config/sunshine/*.log
