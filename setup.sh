@@ -37,6 +37,8 @@ if [[ -d "$SYSTEM_DIR" ]]; then
     echo "  /${f#./}"
   done
   if [[ -d "$SYSTEM_DIR/etc/udev" ]]; then
+    # hwdb.d entries (key remaps) only take effect once compiled into hwdb.bin.
+    [[ -d "$SYSTEM_DIR/etc/udev/hwdb.d" ]] && sudo systemd-hwdb update
     sudo udevadm control --reload && sudo udevadm trigger -s input
   fi
 fi
