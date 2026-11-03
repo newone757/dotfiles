@@ -45,7 +45,16 @@ end)
 -- leaving the main window blocked by an invisible modal dialog. Center them.
 o.window({ class = "^BambuStudio$", float = true }, { center = true })
 
--- Windows VM full desktop (omarchy-windows-vm via xfreerdp): open maximized so
+-- Windows VM full desktop (omarchy-windows-vm via xfreerdp): maximize it so
 -- the single-window square aspect toggle doesn't shrink it to a 2160x2160
 -- square on the TV. Maximized keeps the bar and gaps, unlike full screen.
-o.window({ class = "^xfreerdp$", title = "^Windows VM" }, { maximize = true })
+-- A `maximize` window rule didn't take (xfreerdp is XWayland and sets its title
+-- after mapping), so do it from events instead.
+local function maximize_windows_vm(w)
+  if w ~= nil and w.class == "xfreerdp" and tostring(w.title):find("^Windows VM")
+     and (w.fullscreen or 0) == 0 then
+    hl.dispatch(hl.dsp.window.fullscreen({ mode = "maximized", window = "address:" .. w.address }))
+  end
+end
+hl.on("window.open", maximize_windows_vm)
+hl.on("window.title", maximize_windows_vm)
