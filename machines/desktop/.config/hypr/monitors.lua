@@ -48,7 +48,16 @@ for _, ws in ipairs({ 1, 2, 3, 4, 5 }) do
   hl.workspace_rule({ workspace = tostring(ws), monitor = displays.tv, default = ws == 1 })
 end
 
-hl.workspace_rule({ workspace = "6", monitor = displays.panel, default = true })
+-- The panel is 1920x720, so the single-window square aspect toggle (SUPER+CTRL+
+-- BACKSPACE) would squeeze a lone window there to 720x720. Hyprland 0.56 ignores
+-- that option in layout_opts, but the scrolling layout doesn't apply it at all,
+-- so the panel's workspace uses scrolling (tested 2026-11-03).
+hl.workspace_rule({
+  workspace = "6",
+  monitor = displays.panel,
+  default = true,
+  layout = "scrolling",
+})
 
 -- Sunshine stream workspace. Lives on the headless "sunshine" output that
 -- ~/.local/bin/sunshine-virtual-display creates per stream; harmless when that

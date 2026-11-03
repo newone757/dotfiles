@@ -33,7 +33,25 @@ hl.config({
 -- NOTE: Quattro's commented example uses fingers = 3. You were on 4.
 -- Also note your trackpad-gestures daemon binds 3-finger gestures separately,
 -- so keeping this at 4 avoids fighting it.
-hl.gesture({ fingers = 4, direction = "horizontal", action = "workspace" })
+--
+-- On a workspace using the scrolling layout (the panel's workspace 6), the same
+-- swipe slides the columns instead. Switching workspaces there is pointless,
+-- since the panel only has one. The gesture is re-registered whenever the active
+-- workspace or monitor changes; "unset" clears the previous one first.
+local swipe_action
+local function update_swipe()
+  local ws = hl.get_active_workspace()
+  local action = (ws and ws.tiled_layout == "scrolling") and "scroll_move" or "workspace"
+  if action == swipe_action then return end
+  if swipe_action then
+    hl.gesture({ fingers = 4, direction = "horizontal", action = "unset" })
+  end
+  swipe_action = action
+  hl.gesture({ fingers = 4, direction = "horizontal", action = action })
+end
+update_swipe()
+hl.on("workspace.active", update_swipe)
+hl.on("monitor.focused", update_swipe)
 
 -- Per-device settings.
 -- VERIFY AFTER UPGRADE: the touchscreen is not currently enumerating (dead USB
