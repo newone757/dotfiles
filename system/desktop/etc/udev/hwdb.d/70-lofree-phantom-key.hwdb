@@ -1,5 +1,5 @@
-# Lofree HYZEN67 (388d:0025): drop the key its Consumer Control interface sends
-# on its own, with no physical press, exactly ~20 min after the last real
+# Lofree HYZEN67 (388d:0025 via its 2.4 GHz dongle, 388d:0024 over USB cable):
+# drop the key its Consumer Control interface sends on its own, with no physical press, exactly ~20 min after the last real
 # keypress -- the keyboard entering its "Level 2 sleep" (set to 20 min in the
 # Lofree web configurator). Linux has no name for it (KEY_UNKNOWN, 240), but
 # it still counts as input, so it woke the displays and kept the OLED TV on.
@@ -9,6 +9,10 @@
 # to KEY_RESERVED, which libinput and the compositor ignore. Physical keys that
 # also come through as KEY_UNKNOWN (c04b0, c0401) are left alone.
 #
+# The cable ID is covered too (added 2026-11-03) since the keyboard is sometimes
+# plugged in to charge; the phantom key was only ever captured on the dongle.
+#
 # After editing: sudo systemd-hwdb update && sudo udevadm trigger -s input
+evdev:input:b0003v388Dp0024*
 evdev:input:b0003v388Dp0025*
  KEYBOARD_KEY_c0cff=reserved
