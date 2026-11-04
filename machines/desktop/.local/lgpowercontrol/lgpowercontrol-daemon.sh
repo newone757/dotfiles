@@ -123,9 +123,56 @@ DEEP_OFF_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-deep-off"
 # Present while HDMI-A-2 is DPMS'd off by the fallback above, until restore.
 # Lives in XDG_RUNTIME_DIR so a daemon restart can still undo it.
 HDMI_CUT_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-hdmi-cut"
+
+# Present while the displays are held dark after a wake that no input device
+# caused. Its mtime is when the hold began; only input logged after that ends it.
+#
+# 2026-11-03: the Claude desktop app takes a "remote_tools" keep-awake every
+# 20-30 min, ignoring its own keep-awake setting. On Wayland that is an idle
+# inhibitor, and an inhibitor appearing while idle reads as activity to the
+# shell: it went "active", ran omarchy-system-wake, and this daemon restored
+# both displays -- 20+ times overnight, with input-activity logging nothing.
+# Steam, browsers or anything else holding an inhibitor would do the same.
+PHANTOM_HOLD_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-phantom-hold"
+
+# How long to wait for input-activity to log the input behind a wake before
+# calling it a phantom. Its first event after any quiet stretch is logged at
+# once; this only covers the journal write landing a moment after the shell.
+PHANTOM_GRACE_SECS=3
 # ---------------------------------------------------------------------------
 
 log() { echo "$*" | logger --tag lgpowercontrol-daemon; }
+
+# Did any input device fire since epoch second $1? Reads the input-activity
+# logger (keyboards, mice, touch, uinput -- everything libinput sees). If that
+# logger is down or unreadable, answer yes: a phantom we fail to catch lights
+# the screens, but a real wake we fail to see would leave them dark for good.
+input_since() {
+  systemctl is-active --quiet input-activity-log.service || return 0
+  local out
+  out=$(journalctl -t input-activity --since "@$1" -q -o cat 2>/dev/null) || return 0
+  grep -qE '^(input|media-key):' <<<"$out"
+}
+
+# Held dark after a phantom wake, until real input arrives.
+held_dark() {
+  [[ -e "$PHANTOM_HOLD_FILE" ]] || return 1
+  if input_since "$(stat -c %Y "$PHANTOM_HOLD_FILE")"; then
+    rm -f "$PHANTOM_HOLD_FILE"
+    return 1
+  fi
+  return 0
+}
+
+# The shell just went active after being dark since $1. Was it real input?
+woke_by_input() {
+  local i
+  for ((i = 0; i <= PHANTOM_GRACE_SECS; i++)); do
+    input_since "$1" && return 0
+    sleep 1
+  done
+  return 1
+}
 
 # omarchy-hyprland-session-locked: 0 = locked, 1 = unlocked, 2 = undetermined.
 # Its own docs say callers branching on success should treat 2 as unlocked.
@@ -153,7 +200,7 @@ is_idle() {
 # connect left its headless output up). Streams now idle like anything else:
 # stream input counts as activity, same as local input.
 is_dark() {
-  is_locked || is_idle
+  is_locked || is_idle || held_dark
 }
 
 # Keep the displays blanked for as long as the session is locked.
@@ -279,6 +326,13 @@ tv_blank_loop() {
     if [[ -e "$HDMI_CUT_FILE" ]] && output_is_on "$PRIMARY"; then
       log "$PRIMARY came back on while cut -- cutting again"
       cut_hdmi
+    fi
+
+    # The shell's wake lit the panel, but nobody touched anything: put it
+    # straight back out instead of waking the TV for a password nobody types.
+    if [[ -e "$PHANTOM_HOLD_FILE" ]] && panel_is_on && (( ! tv_awake )); then
+      do_blank && log "re-blanked after phantom wake"
+      continue
     fi
 
     if panel_is_on || (( tv_awake )); then
@@ -428,7 +482,7 @@ tv_restore() {
   flock -u 8
 }
 
-rm -f "$DEEP_OFF_FILE"
+rm -f "$DEEP_OFF_FILE" "$PHANTOM_HOLD_FILE"
 # A restart mid-cut would otherwise leave HDMI-A-2 dark with nothing to undo it.
 uncut_hdmi
 
@@ -465,6 +519,12 @@ while true; do
       fi
     fi
   else
+    if (( dark )) && ! woke_by_input "$dark_at"; then
+      touch "$PHANTOM_HOLD_FILE"
+      log "woke with no input logged -- holding displays dark until real input"
+      sleep "$POLL_SECS"
+      continue
+    fi
     if (( dark )); then
       dark=0
       escalated=0
