@@ -1,8 +1,9 @@
 # Lofree HYZEN67 (388d:0025 via its 2.4 GHz dongle, 388d:0024 over USB cable):
 # drop the key its Consumer Control interface sends on its own, with no
-# physical press, exactly ~20 min after the last real keypress -- the keyboard entering its "Level 2 sleep" (set to 20 min in the
-# Lofree web configurator). Linux has no name for it (KEY_UNKNOWN, 240), but
-# it still counts as input, so it woke the displays and kept the OLED TV on.
+# physical press, exactly ~20 min after the last real keypress -- the keyboard
+# entering its "Level 2 sleep" (set to 20 min in the Lofree web configurator).
+# Linux has no name for it (KEY_UNKNOWN, 240), but it still counts as input,
+# so it woke the displays and kept the OLED TV on.
 #
 # Captured 2026-11-02 with scancode c0cff (HID Consumer page, usage 0x0cff) at
 # 20:12:04 and 20:56:44, each 20m04s after the last keypress. "reserved" maps it
