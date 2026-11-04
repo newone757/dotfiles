@@ -1,0 +1,8 @@
+[Unit]
+Description=Automount node804 media share
+
+[Automount]
+Where=/mnt/node804/media
+
+[Install]
+WantedBy=remote-fs.target

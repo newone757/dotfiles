@@ -1,0 +1,8 @@
+[Unit]
+Description=Automount node804 downloads share
+
+[Automount]
+Where=/mnt/node804/downloads
+
+[Install]
+WantedBy=remote-fs.target

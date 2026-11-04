@@ -1,0 +1,8 @@
+[Unit]
+Description=Automount node804 photos share
+
+[Automount]
+Where=/mnt/node804/photos
+
+[Install]
+WantedBy=remote-fs.target

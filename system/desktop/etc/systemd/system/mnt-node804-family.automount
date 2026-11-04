@@ -1,0 +1,8 @@
+[Unit]
+Description=Automount node804 family share
+
+[Automount]
+Where=/mnt/node804/family
+
+[Install]
+WantedBy=remote-fs.target

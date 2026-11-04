@@ -1,0 +1,14 @@
+# node804 (Unraid, 10.0.1.10) "Family" share. Public, so guest
+# access (sec=none). Mounted on first access by the matching .automount, so a
+# server that's down never holds up boot.
+[Unit]
+Description=node804 family share
+After=network-online.target
+Wants=network-online.target
+
+[Mount]
+What=//10.0.1.10/Family
+Where=/mnt/node804/family
+Type=cifs
+Options=vers=3.1.1,sec=none,uid=1000,forceuid,gid=1000,forcegid,file_mode=0644,dir_mode=0755,soft,nounix,serverino,mapposix,rsize=4194304,wsize=4194304,bsize=1048576,echo_interval=60,actimeo=1,closetimeo=1,_netdev
+TimeoutSec=15
