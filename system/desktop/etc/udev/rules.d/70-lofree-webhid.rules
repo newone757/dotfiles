@@ -1,5 +1,6 @@
-# Lofree HYZEN67 (388d:0025): give the logged-in user access to its hidraw
-# interfaces so the vendor's web configurator can reach it over WebHID in Brave.
-# uaccess grants the active seat user only, same as the GameSir rule Deadband
-# ships; no group membership or world-writable mode.
-KERNEL=="hidraw*", ATTRS{idVendor}=="388d", ATTRS{idProduct}=="0025", TAG+="uaccess"
+# Lofree HYZEN67, receiver (388d:0025) and USB cable (388d:0024): give the
+# logged-in user access to its hidraw interfaces so the vendor's web
+# configurator can reach it over WebHID in Brave. Firmware updates need the
+# cable. uaccess grants the active seat user only, same as the GameSir rule
+# Deadband ships; no group membership or world-writable mode.
+KERNEL=="hidraw*", ATTRS{idVendor}=="388d", ATTRS{idProduct}=="0024|0025", TAG+="uaccess"
