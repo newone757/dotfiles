@@ -1,0 +1,432 @@
+# This is the CoolerControl configuration file.
+# Comments and most formatting is preserved.
+# Most of this file you can edit by hand, but it is recommended to stop the daemon when doing so.
+# -------------------------------
+
+
+# Unique ID Device List
+# -------------------------------
+# This is a simple UID and device name key-value pair, that is automatically generated at startup
+#  to help humans distinguish which UID belongs to which device in this config file.
+#  Only the device name is given here, complete Device information can be requested from the API.
+#  UIDs are generated sha256 hashes based on specific criteria to help determine device uniqueness.
+# ANY CHANGES WILL BE OVERWRITTEN.
+# Example:
+# 21091c4fb341ceab6236e8c9e905ccc263a4ac08134b036ed415925ba4c1645d = "Nvidia GPU"
+[devices]
+d716694b203f9299c0319df270bcf8643eb66861101e9f0ea9b58318dceefc65 = "r8169_0_800:00"
+73ccf1171c66a0c41f159beaa6e5718670c9a9b2e19109af1d4d1e2676d62344 = "NVIDIA GeForce RTX 3080"
+db8449b77a20c34aac47eddf7324359fd87c01024d2b66e7f25c0fdfdf5f96f8 = "nvme1"
+f42333b13a2853dfb8e516c576470622e74a4659bfffe7ca229f68733beae979 = "acpitz"
+a93806de18a320df374d21ebea6d61317fb166ef1890bc67b7a57db9e78dfb9f = "nvme2"
+19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee = "Custom Sensors"
+12bfc291175ae6bf9452c3918176693c4017c4aa00a294f5989cc35cdbf66ede = "mt7921_phy0"
+31afea3c316e94c19b918e2e76e98ca246202c76409c1faccfe3b155269f38a9 = "AMD Ryzen 7 7800X3D 8-Core Processor"
+13636fca73f21910fbb6513b2469ebb48d3a67add3af6fe40ab2c89455ac5ff9 = "amdgpu"
+9a64f7a5c7b59e073064f69eea496b0424b867bb35c843c28825f6d4a73aeba5 = "gigabyte_wmi"
+af84196afbe34945bdd2efd3015fe0a6ad732ae35e0c01d9ad2d0a7d437c800b = "nvme0"
+fa49f4645cba12961942172e0455e53675b4adbc2ed077a740863e40266e9803 = "it8689_90050606"
+
+
+# Legacy690 Option for devices
+# -------------------------------
+# There are 2 Asetek 690LC liquid coolers that have the same device ID.
+#  To tell them apart we need user input to know which cooler we're actually dealing with.
+#  This is an assignment of liquidctl AseTek690LC device UIDs to true/false:
+#   true = Legacy690 Cooler aka NZXT Kraken X40, X60, X31, X41, X51 and X61
+#   false = Modern690 Cooler aka EVGA CLC 120 (CLC12), 240, 280 and 360
+# Example:
+# 21091c4fb341ceab6236e8c9e905ccc263a4ac08134b036ed415925ba4c1645d = true
+[legacy690]
+
+
+# Device Settings
+# -------------------------------
+# This is where CoolerControl will save device settings for the cooresponding device.
+# Settings can be set here also specifically by hand. (restart required for applying)
+# These settings are applied on startup and each is overwritten once a new setting
+# has been applied.
+# Example:
+# [device-settings.4b9cd1bc5fb2921253e6b7dd5b1b011086ea529d915a86b3560c236084452807]
+# pump = { speed_fixed = 30 }
+# logo = { lighting = { mode = "fixed", colors = [[0, 255, 255]] } }
+# ring = { lighting = { mode = "spectrum-wave", backward = true, colors = [] } }
+[device-settings]
+
+[device-settings.fa49f4645cba12961942172e0455e53675b4adbc2ed077a740863e40266e9803]
+fan2 = { profile_uid = "7f239c5d-0f29-4531-9363-99af043faeaa" }
+fan1 = { profile_uid = "94aa1cd7-51e2-472c-8a8e-46ab93bdf587" }
+fan3 = { profile_uid = "0" }
+fan4 = { profile_uid = "7f239c5d-0f29-4531-9363-99af043faeaa" }
+
+[device-settings.73ccf1171c66a0c41f159beaa6e5718670c9a9b2e19109af1d4d1e2676d62344]
+fan1 = { profile_uid = "cc7b50f5-5044-4469-b721-f63800cf26a5" }
+fan2 = { profile_uid = "cc7b50f5-5044-4469-b721-f63800cf26a5" }
+
+
+# A list of profiles to be used with each device's settings
+# -------------------------------
+[[profiles]]
+uid = "0"
+name = "Unmanaged"
+p_type = "Default"
+function = "0"
+
+[[profiles]]
+uid = "cc7b50f5-5044-4469-b721-f63800cf26a5"
+name = "GPU Fan (Silent, Calibrated)"
+p_type = "Graph"
+function_uid = "fe74a0d5-0fff-4df3-ab14-9e0bffb20989"
+speed_profile = [[45.0, 0], [54.0, 0], [55.0, 7], [70.0, 47], [83.0, 87]]
+temp_source = { temp_name = "Auto EMA GPU Temp 8s", device_uid = "19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee" }
+temp_min = 45.0
+temp_max = 83.0
+
+[[profiles]]
+uid = "028be465-bf1c-4164-84fd-3b2ebe97a59a"
+name = "CPU Cooler (Silent)"
+p_type = "Graph"
+function_uid = "fe74a0d5-0fff-4df3-ab14-9e0bffb20989"
+speed_profile = [[45.0, 20], [60.0, 40], [75.0, 70], [85.0, 100]]
+temp_source = { temp_name = "Auto EMA temp1 8s", device_uid = "19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee" }
+temp_min = 45.0
+temp_max = 85.0
+
+[[profiles]]
+uid = "d45d8939-e336-4b16-ba9d-76263d7c02e9"
+name = "Case CPU (Silent, Calibrated)"
+p_type = "Graph"
+function_uid = "fe74a0d5-0fff-4df3-ab14-9e0bffb20989"
+speed_profile = [[50.0, 1], [65.0, 20], [78.0, 60]]
+temp_source = { temp_name = "Auto EMA temp1 8s", device_uid = "19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee" }
+temp_min = 50.0
+temp_max = 78.0
+
+[[profiles]]
+uid = "4e21e06a-8bdc-4699-aed7-781e587ef1aa"
+name = "Case GPU (Silent, Calibrated)"
+p_type = "Graph"
+function_uid = "fe74a0d5-0fff-4df3-ab14-9e0bffb20989"
+speed_profile = [[50.0, 1], [65.0, 20], [78.0, 60]]
+temp_source = { temp_name = "Auto EMA GPU Temp 8s", device_uid = "19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee" }
+temp_min = 50.0
+temp_max = 78.0
+
+[[profiles]]
+uid = "7f239c5d-0f29-4531-9363-99af043faeaa"
+name = "Case Airflow (Silent, Calibrated)"
+p_type = "Mix"
+function_uid = "0"
+member_profile_uids = ["d45d8939-e336-4b16-ba9d-76263d7c02e9", "4e21e06a-8bdc-4699-aed7-781e587ef1aa"]
+mix_function_type = "Max"
+
+[[profiles]]
+uid = "223c1a0c-19f2-45a6-85b5-324f9a03e4cc"
+name = "Case Exhaust (Silent, Calibrated)"
+p_type = "Overlay"
+function_uid = "0"
+member_profile_uids = ["7f239c5d-0f29-4531-9363-99af043faeaa"]
+offset_profile = [[50, -15]]
+
+[[profiles]]
+uid = "d5eb4c38-5a8f-4a18-8948-023c173bf698"
+name = "GPU Fan (Balanced, Calibrated)"
+p_type = "Graph"
+function_uid = "334e326a-262f-40c1-adeb-d29f7bfcf39f"
+speed_profile = [[45.0, 0], [59.0, 0], [60.0, 20], [75.0, 73], [85.0, 100]]
+temp_source = { temp_name = "GPU Temp", device_uid = "73ccf1171c66a0c41f159beaa6e5718670c9a9b2e19109af1d4d1e2676d62344" }
+temp_min = 45.0
+temp_max = 85.0
+
+[[profiles]]
+uid = "bb463106-0641-45c2-bce5-fc30443ed299"
+name = "CPU Cooler (Balanced)"
+p_type = "Graph"
+function_uid = "334e326a-262f-40c1-adeb-d29f7bfcf39f"
+speed_profile = [[35.0, 30], [55.0, 55], [75.0, 90], [85.0, 100]]
+temp_source = { temp_name = "temp1", device_uid = "31afea3c316e94c19b918e2e76e98ca246202c76409c1faccfe3b155269f38a9" }
+temp_min = 35.0
+temp_max = 85.0
+
+[[profiles]]
+uid = "82fe85ca-529e-4449-a024-f2fe5f41e4aa"
+name = "Case CPU (Balanced, Calibrated)"
+p_type = "Graph"
+function_uid = "334e326a-262f-40c1-adeb-d29f7bfcf39f"
+speed_profile = [[45.0, 1], [65.0, 60], [78.0, 100]]
+temp_source = { temp_name = "temp1", device_uid = "31afea3c316e94c19b918e2e76e98ca246202c76409c1faccfe3b155269f38a9" }
+temp_min = 45.0
+temp_max = 78.0
+
+[[profiles]]
+uid = "ac9f25f0-649b-424f-a844-d0f60c97cac4"
+name = "Case GPU (Balanced, Calibrated)"
+p_type = "Graph"
+function_uid = "334e326a-262f-40c1-adeb-d29f7bfcf39f"
+speed_profile = [[45.0, 1], [65.0, 60], [78.0, 100]]
+temp_source = { temp_name = "GPU Temp", device_uid = "73ccf1171c66a0c41f159beaa6e5718670c9a9b2e19109af1d4d1e2676d62344" }
+temp_min = 45.0
+temp_max = 78.0
+
+[[profiles]]
+uid = "588329fa-9792-4c19-bf92-5b674d732a10"
+name = "Case Airflow (Balanced, Calibrated)"
+p_type = "Mix"
+function_uid = "0"
+member_profile_uids = ["82fe85ca-529e-4449-a024-f2fe5f41e4aa", "ac9f25f0-649b-424f-a844-d0f60c97cac4"]
+mix_function_type = "Max"
+
+[[profiles]]
+uid = "c975bd0a-330b-4c57-bdd8-302397904561"
+name = "Case Exhaust (Balanced, Calibrated)"
+p_type = "Overlay"
+function_uid = "0"
+member_profile_uids = ["588329fa-9792-4c19-bf92-5b674d732a10"]
+offset_profile = [[50, -15]]
+
+[[profiles]]
+uid = "94aa1cd7-51e2-472c-8a8e-46ab93bdf587"
+name = "CPU Cooler (Silent, Calibrated)"
+p_type = "Graph"
+function_uid = "fe74a0d5-0fff-4df3-ab14-9e0bffb20989"
+speed_profile = [[45.0, 1], [50.1, 9], [54.3, 19], [58.5, 20], [60.1, 31], [64.8, 31], [66.6, 60], [70.0, 60], [73.2, 60], [75.1, 80], [85.0, 100]]
+temp_source = { temp_name = "Auto EMA Auto EMA temp1 8s 8s", device_uid = "19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee" }
+temp_min = 45.0
+temp_max = 85.0
+
+# A list of functions to be applied to the various profiles
+# -------------------------------
+[[functions]]
+uid = "0"
+name = "Default Function"
+f_type = "Identity"
+
+[[functions]]
+uid = "fe74a0d5-0fff-4df3-ab14-9e0bffb20989"
+name = "Auto Fan (Silent)"
+f_type = "Identity"
+duty_minimum = 2
+duty_maximum = 100
+step_size_min_decreasing = 0
+step_size_max_decreasing = 0
+threshold_hopping = true
+bypass_min_at_extremes = false
+
+[[functions]]
+uid = "334e326a-262f-40c1-adeb-d29f7bfcf39f"
+name = "Auto Fan (Balanced)"
+f_type = "Standard"
+duty_minimum = 2
+duty_maximum = 100
+step_size_min_decreasing = 0
+step_size_max_decreasing = 0
+response_delay = 2
+deviance = 2.0
+only_downward = true
+threshold_hopping = true
+bypass_min_at_extremes = false
+
+
+# Cooler Control Settings
+# -------------------------------
+# This is where CoolerControl specifc general and specifc device settings are set. These device
+# settings differ from the above Device Settings, in that they are applied to CoolerControl,
+# and not on the devices themselves. For ex. settings such as disabling/enabling a particular device.
+[settings]
+
+# whether to apply the saved device settings on daemon startup
+apply_on_boot = true
+
+# Whether to enable the integration with liquidctl.
+# Disabling this will prevent any communication with liquidctl,
+# and all HWMon supported devices will be shown.
+liquidctl_integration = true
+
+# There are some devices that are supported both by liquidctl and hwmon drivers. Normally the
+# preference is to use liquidctl as it supports more features such as RGB control. There are
+# some cases where the hwmon driver is preferred though. Note: Care should be taken to blacklist
+# one of the devices to avoid needlessly loading the device IO and avoid concurrency issues.
+# Use at your own risk.
+hide_duplicate_devices = true
+
+# Will skip initialization calls for liquidctl devices. ONLY USE if you are doing initialiation manually.
+no_init = false
+
+# Startup Delay (seconds) is an integer value between 0 and 120
+startup_delay = 2
+
+# For ThinkPads, wheather to use the 'full-speed' option when settings the fan to 100%
+# This option drives the fan as fast as it can go, which might exceed hardware limits,
+# so use this level with caution.
+thinkpad_full_speed = false
+
+# API Address and Port:
+# The daemon by default uses port 11987 and the standard loopback IPv4 and IPv6 addresses.
+# You can set an IPv4, IPv6 or both addresses to listen on. An empty string will disable the address.
+# It is highly recommended to use the default settings unless you have a specific reason to change them
+# and understand the implications.
+# If you expose the API to a public network, it is recommended to use TLS/HTTPS (see below).
+# For more information see the project wiki.
+# Example:
+# port = 11987
+# ipv4_address = "127.0.0.1"
+# ipv6_address = "::1"
+
+# Whether to compress the response payload from the API. This will reduce the size of the response
+# but will increase CPU usage a tiny bit. This is useful if you are running the API over a network.
+# 'compress' is deprecated, use compress_payload instead.
+compress_payload = true
+
+# The polling rate for sensor data collection. The default is 1.0 second. Limited to values
+# between 0.5 and 5.0 seconds in half-second increments.
+# Note: Caution should be used when using values less than 1.0.
+# poll_rate = 1.0
+
+# Whether to check if drivetemp supported drives are in a suspended state/spun down, and if so,
+# return 0C as their reporting temperature.
+drivetemp_suspend = false
+
+# TLS/HTTPS Configuration:
+# TLS to secure the REST API with HTTPS. (enabled by default)
+# When enabled, a self-signed certificate will be automatically generated on first startup if no
+# certificate paths are specified. The certificate and key are stored in /etc/coolercontrol/ by
+# default.
+# Note: Self-signed certificates will cause browser warnings. You can provide your own
+# certificate by specifying the paths below, or use a reverse proxy (nginx, caddy, traefik)
+# to handle TLS termination as an alternative approach.
+# tls_enabled = true
+# tls_cert_path = "/etc/coolercontrol/coolercontrol.crt"
+# tls_key_path = "/etc/coolercontrol/coolercontrol.key"
+
+# Reverse Proxy / CORS Configuration:
+# Custom origins to allow in CORS requests. This is useful when accessing CoolerControl through
+# a reverse proxy with a custom domain, or via port forwarding with a public IP. Add the full
+# origin URL (scheme + host + port if non-standard). Only read from this file, at startup.
+# origins = ["https://coolercontrol.mydomain.com", "http://192.168.1.1:8080"]
+
+# Embedding the UI in another page:
+# The origins of pages that may show the CoolerControl UI inside an iframe, such as a server
+# dashboard. By default no page may. Only list pages you trust: a page that frames the UI can
+# trick a logged-in user into clicking things in it.
+# - Write each origin exactly as the browser shows the embedding page's address: scheme, host
+#   and port, without a path. The host must be written the same way too. A page opened by IP
+#   address needs that IP address here, and a page opened by name needs that name.
+# - An IPv6 address such as "https://[2001:db8::1]:9090" cannot be listed. It is a valid
+#   address for a browser to open, but the security header that carries this list has no way
+#   to write one. Open the embedding page by hostname or IPv4 address and list that instead.
+# - An entry that is not an exact origin is ignored, with a warning in the log at startup.
+# - At most 16 entries are read. Any after the first 16 are ignored, with a warning as well.
+# - Only read from this file, at startup. Restart the daemon after changing it.
+# - The login only holds inside the frame when the embedding page and CoolerControl are opened
+#   with the same scheme, normally HTTPS, and at the same host or domain.
+# - Prefer "https" origins. A page served over plain "http" can be replaced by anyone on the
+#   network path between the browser and that page, who could then frame the UI in its place.
+# frame_ancestors = ["https://dashboard.mydomain.com:9090", "https://192.168.1.10:9090"]
+
+# Header to check for the client's original protocol when behind a reverse proxy. Common values
+# are "X-Forwarded-Proto" (nginx, Apache) or "X-Scheme". When this header indicates "https",
+# the HTTP-to-HTTPS redirect is skipped (the proxy handles TLS termination).
+# protocol_header = "X-Forwarded-Proto"
+
+# Reverse proxies whose X-Forwarded-For header names the real client, as addresses or CIDR
+# ranges. Login throttling then counts each client separately instead of lumping everyone
+# behind the proxy together. Only list proxies you run: any listed address can claim to be any
+# client. Listing 127.0.0.1 or ::1 extends that to every local user of this machine.
+# A proxy on this machine connects from loopback, so its clients share the local app's
+# connection budget.
+# trusted_proxies = ["127.0.0.1", "::1"]
+
+# Allow unencrypted HTTP connections from non-localhost addresses. By default, non-localhost
+# HTTP requests are redirected to HTTPS when TLS is enabled. Set this to true to allow HTTP.
+# Note: This should only be used as a last resort and is not recommended.
+# allow_unencrypted = false
+
+# Whether a remote device-service plugin must present a TLS certificate whose fingerprint
+# you pinned in advance. When disabled (the default), the daemon trusts a remote the first
+# time it connects, records that certificate's fingerprint in a "tls_pin" file inside the
+# plugin's directory, and refuses the connection if it ever changes. Enable this to refuse
+# unknown remotes outright; you then have to write the expected fingerprint into that
+# "tls_pin" file yourself. A TLS connection to localhost is trusted without a pin while this
+# is disabled, but needs one like any other once it is enabled.
+# This only applies to connections that use TLS at all: a plugin reached over a Unix socket
+# or plain TCP has no certificate to pin. Placing a "token" file in a plugin's directory is
+# what switches its connection to TLS, unless its manifest sets "tls" explicitly.
+# tls_strict = false
+
+# Whether to auto-detect Super-I/O hardware sensors and load the appropriate kernel
+# modules at startup. This helps ensure all hwmon chips are available. (x86_64 only)
+# sensors_auto_detect = true
+
+# Whether to apply the "label" and "ignore" statements from the lm-sensors configuration files
+# (/etc/sensors3.conf, /etc/sensors.conf and /etc/sensors.d/). Labels set there replace the ones
+# the kernel driver reports, and ignored sensors are hidden. Names set in CoolerControl itself
+# always win. The files are read once at startup and are never written to.
+# sensors_conf_enabled = true
+
+# Whether to listen for kernel device add/remove events (e.g. USB hotplug) at startup.
+# When enabled, the daemon watches for hardware changes and notifies connected clients.
+# Requires netlink socket access, which containers may not have.
+# device_listener_enabled = false
+
+# Whether to log at DEBUG level. Debug output is large and is kept out of the in-app log view,
+# so turn it off once the logs are collected. Read at startup; a change applies after a restart.
+# The CC_LOG environment variable or the --debug flag can also raise the level.
+# debug_logging = false
+
+# Power profile to Mode mapping:
+# When the system power profile changes, CoolerControl activates the Mode mapped to the new
+# profile. The profile is read over D-Bus from power-profiles-daemon or the tuned-ppd shim;
+# TLP does not expose one. Profiles left unmapped are ignored, and the mapping is also editable
+# from the Modes page in the UI. Every change is published on the SSE "system" event whether or
+# not a Mode is mapped.
+# [power_profile_modes]
+# power-saver = "<mode uid>"
+# balanced = "<mode uid>"
+# performance = "<mode uid>"
+
+# CoolerControl Device settings Example:
+# [settings.4b9cd1bc5fb2921253e6b7dd5b1b011086ea529d915a86b3560c236084452807]
+# disabled = true
+
+[settings.9a64f7a5c7b59e073064f69eea496b0424b867bb35c843c28825f6d4a73aeba5]
+disabled = true
+name = "gigabyte_wmi"
+disable = true
+
+[settings.9a64f7a5c7b59e073064f69eea496b0424b867bb35c843c28825f6d4a73aeba5.channel_settings]
+
+[[custom_sensors]]
+id = "Auto EMA GPU Temp 8s"
+cs_type = "ExponentialMovingAvg"
+time_window_seconds = 8
+
+[[custom_sensors.sources]]
+temp_source = { temp_name = "GPU Temp", device_uid = "73ccf1171c66a0c41f159beaa6e5718670c9a9b2e19109af1d4d1e2676d62344" }
+weight = 1
+
+[[custom_sensors]]
+id = "Auto EMA temp1 8s"
+cs_type = "ExponentialMovingAvg"
+time_window_seconds = 8
+
+[[custom_sensors.sources]]
+temp_source = { temp_name = "temp1", device_uid = "31afea3c316e94c19b918e2e76e98ca246202c76409c1faccfe3b155269f38a9" }
+weight = 1
+
+[[custom_sensors]]
+id = "Auto EMA Auto EMA GPU Temp 8s 8s"
+cs_type = "ExponentialMovingAvg"
+time_window_seconds = 8
+
+[[custom_sensors.sources]]
+temp_source = { temp_name = "Auto EMA GPU Temp 8s", device_uid = "19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee" }
+weight = 1
+
+[[custom_sensors]]
+id = "Auto EMA Auto EMA temp1 8s 8s"
+cs_type = "ExponentialMovingAvg"
+time_window_seconds = 8
+
+[[custom_sensors.sources]]
+temp_source = { temp_name = "Auto EMA temp1 8s", device_uid = "19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee" }
+weight = 1
