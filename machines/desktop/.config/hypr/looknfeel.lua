@@ -48,3 +48,11 @@
 --     column_width = 0.97,
 --   },
 -- })
+
+-- Gaming: variable refresh rate for fullscreen apps only (2), so the desktop
+-- stays at a fixed 120Hz but games on the LG TV sync to their frame rate.
+hl.config({
+  misc = {
+    vrr = 2,
+  },
+})
