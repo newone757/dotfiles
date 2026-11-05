@@ -139,6 +139,25 @@ PHANTOM_HOLD_FILE="$XDG_RUNTIME_DIR/lgpowercontrol-phantom-hold"
 # calling it a phantom. Its first event after any quiet stretch is logged at
 # once; this only covers the journal write landing a moment after the shell.
 PHANTOM_GRACE_SECS=3
+
+# Blank after this long with no input from any device, whatever inhibitors say.
+# Matches shell.json's idle.screensaver. 0 disables.
+#
+# 2026-11-04 17:38-17:58: the shell never went idle at all. The Claude app's
+# keep-awakes ("remote_tools", then "remote-control:session" while a remotely
+# driven session worked) overlapped with gaps of 3 min at most, so its 300s
+# timer never ran out, with nobody at the desk. The phantom hold above only
+# helps once the screens are dark. Stay-awake (SUPER+CTRL+I, or
+# idle-inhibit-watch for playing media and running games) still keeps them on.
+# Gamepads are invisible to libinput and are not counted: playing with one
+# means a game is running, which already holds stay-awake.
+INPUT_QUIET_SECS=300
+
+# Touched while stay-awake is on, so the quiet count restarts when it ends.
+# 2026-11-04 21:09: a game played on a controller for 25 min held stay-awake;
+# quitting to the desktop released it at 21:09:40 and the screens blanked 2s
+# later, the last keyboard/mouse input being from 21:04.
+STAY_AWAKE_STAMP="$XDG_RUNTIME_DIR/lgpowercontrol-stay-awake"
 # ---------------------------------------------------------------------------
 
 log() { echo "$*" | logger --tag lgpowercontrol-daemon; }
@@ -152,6 +171,31 @@ input_since() {
   local out
   out=$(journalctl -t input-activity --since "@$1" -q -o cat 2>/dev/null) || return 0
   grep -qE '^(input|media-key):' <<<"$out"
+}
+
+stay_awake() {
+  [[ $(omarchy-shell idle status 2>/dev/null | jq -r '.stayAwake' 2>/dev/null) == true ]]
+}
+
+# No input logged for INPUT_QUIET_SECS and no stay-awake. If the input logger is
+# down, never quiet: blanking on missing data would blank someone mid-use.
+input_quiet() {
+  (( INPUT_QUIET_SECS > 0 )) || return 1
+  systemctl is-active --quiet input-activity-log.service || return 1
+  local since last
+  since=$(( $(date +%s) - INPUT_QUIET_SECS ))
+  if stay_awake; then
+    touch "$STAY_AWAKE_STAMP"
+    return 1
+  fi
+  [[ -e "$STAY_AWAKE_STAMP" ]] && (( $(stat -c %Y "$STAY_AWAKE_STAMP") >= since )) && return 1
+  # The logger writes a line within 10s of any activity, so the newest one is
+  # the last input to that precision. Nothing yet counts from when it started.
+  last=$(journalctl -t input-activity -n 30 -o short-unix -q --no-pager 2>/dev/null \
+    | grep -E ' (input|media-key):' | tail -1 | cut -d. -f1)
+  [[ -n $last ]] || last=$(date -d "$(systemctl show -p ActiveEnterTimestamp --value \
+    input-activity-log.service)" +%s 2>/dev/null) || return 1
+  (( last < since ))
 }
 
 # Held dark after a phantom wake, until real input arrives.
@@ -199,8 +243,10 @@ is_idle() {
 # screens every 5s while the user sat at the desk (a stream that failed to
 # connect left its headless output up). Streams now idle like anything else:
 # stream input counts as activity, same as local input.
+#
+# 2026-11-04: also dark after INPUT_QUIET_SECS with no input (see above).
 is_dark() {
-  is_locked || is_idle || held_dark
+  is_locked || is_idle || input_quiet || held_dark
 }
 
 # Keep the displays blanked for as long as the session is locked.
@@ -330,7 +376,8 @@ tv_blank_loop() {
 
     # The shell's wake lit the panel, but nobody touched anything: put it
     # straight back out instead of waking the TV for a password nobody types.
-    if [[ -e "$PHANTOM_HOLD_FILE" ]] && panel_is_on && (( ! tv_awake )); then
+    # Unlocked and still dark means no input either (real input ends dark).
+    if (( ! tv_awake )) && panel_is_on && { [[ -e "$PHANTOM_HOLD_FILE" ]] || ! is_locked; }; then
       do_blank && log "re-blanked after phantom wake"
       continue
     fi
@@ -482,8 +529,7 @@ tv_restore() {
   flock -u 8
 }
 
-rm -f "$DEEP_OFF_FILE" "$PHANTOM_HOLD_FILE"
-# A restart mid-cut would otherwise leave HDMI-A-2 dark with nothing to undo it.
+rm -f "$DEEP_OFF_FILE" "$PHANTOM_HOLD_FILE"# A restart mid-cut would otherwise leave HDMI-A-2 dark with nothing to undo it.
 uncut_hdmi
 
 # --- state machine ---------------------------------------------------------
