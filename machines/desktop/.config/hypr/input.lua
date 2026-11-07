@@ -38,9 +38,13 @@ hl.config({
 -- swipe slides the columns instead. Switching workspaces there is pointless,
 -- since the panel only has one. The gesture is re-registered whenever the active
 -- workspace or monitor changes; "unset" clears the previous one first.
+-- Inside monitor.focused, hl.get_active_workspace() still returns the workspace
+-- of the monitor focus just left (tested 2026-11-07), so moving from the panel
+-- back to the main screen left the swipe on scroll_move and it did nothing.
+-- Read the workspace off the event's own monitor/workspace when there is one.
 local swipe_action
-local function update_swipe()
-  local ws = hl.get_active_workspace()
+local function update_swipe(ws)
+  if ws == nil or ws.tiled_layout == nil then ws = hl.get_active_workspace() end
   local action = (ws and ws.tiled_layout == "scrolling") and "scroll_move" or "workspace"
   if action == swipe_action then return end
   if swipe_action then
@@ -50,8 +54,8 @@ local function update_swipe()
   hl.gesture({ fingers = 4, direction = "horizontal", action = action })
 end
 update_swipe()
-hl.on("workspace.active", update_swipe)
-hl.on("monitor.focused", update_swipe)
+hl.on("workspace.active", function(ws) update_swipe(ws) end)
+hl.on("monitor.focused", function(m) update_swipe(m and m.active_workspace) end)
 
 -- Per-device settings.
 -- VERIFY AFTER UPGRADE: the touchscreen is not currently enumerating (dead USB
