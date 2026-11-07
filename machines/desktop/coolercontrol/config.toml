@@ -54,14 +54,14 @@ fa49f4645cba12961942172e0455e53675b4adbc2ed077a740863e40266e9803 = "it8689_90050
 [device-settings]
 
 [device-settings.fa49f4645cba12961942172e0455e53675b4adbc2ed077a740863e40266e9803]
-fan2 = { profile_uid = "7f239c5d-0f29-4531-9363-99af043faeaa" }
+fan2 = { profile_uid = "c975bd0a-330b-4c57-bdd8-302397904561" }
 fan1 = { profile_uid = "94aa1cd7-51e2-472c-8a8e-46ab93bdf587" }
 fan3 = { profile_uid = "0" }
-fan4 = { profile_uid = "7f239c5d-0f29-4531-9363-99af043faeaa" }
+fan4 = { profile_uid = "82fe85ca-529e-4449-a024-f2fe5f41e4aa" }
 
 [device-settings.73ccf1171c66a0c41f159beaa6e5718670c9a9b2e19109af1d4d1e2676d62344]
-fan1 = { profile_uid = "cc7b50f5-5044-4469-b721-f63800cf26a5" }
-fan2 = { profile_uid = "cc7b50f5-5044-4469-b721-f63800cf26a5" }
+fan1 = { profile_uid = "d5eb4c38-5a8f-4a18-8948-023c173bf698" }
+fan2 = { profile_uid = "d5eb4c38-5a8f-4a18-8948-023c173bf698" }
 
 
 # A list of profiles to be used with each device's settings
@@ -133,7 +133,7 @@ uid = "d5eb4c38-5a8f-4a18-8948-023c173bf698"
 name = "GPU Fan (Balanced, Calibrated)"
 p_type = "Graph"
 function_uid = "334e326a-262f-40c1-adeb-d29f7bfcf39f"
-speed_profile = [[45.0, 0], [59.0, 0], [60.0, 20], [75.0, 73], [85.0, 100]]
+speed_profile = [[45.0, 5], [51.0, 5], [58.2, 20], [62.0, 40], [75.0, 73], [85.0, 100]]
 temp_source = { temp_name = "GPU Temp", device_uid = "73ccf1171c66a0c41f159beaa6e5718670c9a9b2e19109af1d4d1e2676d62344" }
 temp_min = 45.0
 temp_max = 85.0
@@ -153,7 +153,7 @@ uid = "82fe85ca-529e-4449-a024-f2fe5f41e4aa"
 name = "Case CPU (Balanced, Calibrated)"
 p_type = "Graph"
 function_uid = "334e326a-262f-40c1-adeb-d29f7bfcf39f"
-speed_profile = [[45.0, 1], [65.0, 60], [78.0, 100]]
+speed_profile = [[45.0, 30], [57.1, 30], [63.0, 50], [65.0, 60], [78.0, 100]]
 temp_source = { temp_name = "temp1", device_uid = "31afea3c316e94c19b918e2e76e98ca246202c76409c1faccfe3b155269f38a9" }
 temp_min = 45.0
 temp_max = 78.0
@@ -182,14 +182,14 @@ name = "Case Exhaust (Balanced, Calibrated)"
 p_type = "Overlay"
 function_uid = "0"
 member_profile_uids = ["588329fa-9792-4c19-bf92-5b674d732a10"]
-offset_profile = [[50, -15]]
+offset_profile = [[50, -10]]
 
 [[profiles]]
 uid = "94aa1cd7-51e2-472c-8a8e-46ab93bdf587"
 name = "CPU Cooler (Silent, Calibrated)"
 p_type = "Graph"
 function_uid = "fe74a0d5-0fff-4df3-ab14-9e0bffb20989"
-speed_profile = [[45.0, 1], [50.1, 9], [54.3, 19], [58.5, 20], [60.1, 31], [64.8, 31], [66.6, 60], [70.0, 60], [73.2, 60], [75.1, 80], [85.0, 100]]
+speed_profile = [[45.0, 20], [50.1, 20], [55.0, 20], [58.1, 29], [60.0, 40], [63.2, 52], [66.6, 60], [70.0, 60], [73.2, 60], [75.1, 80], [85.0, 100]]
 temp_source = { temp_name = "Auto EMA Auto EMA temp1 8s 8s", device_uid = "19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee" }
 temp_min = 45.0
 temp_max = 85.0
