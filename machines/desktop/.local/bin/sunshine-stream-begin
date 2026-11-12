@@ -34,8 +34,11 @@ flock -u 9
 # 2. headless output sized to the client
 ~/.local/bin/sunshine-virtual-display start >> "$LOG" 2>&1
 
-# 3. stream window rules on, and move already-open games/Big Picture across
+# 3. stream window rules on, and move already-open games/Big Picture across.
+#    Skipped for the Desktop app: there the whole desktop comes to the stream
+#    (step 4), so games open wherever you are, same as sitting at the desk.
 touch "$XDG_RUNTIME_DIR/sunshine-streaming"
+if [[ ${SUNSHINE_APP_NAME:-} != Desktop ]]; then
 hyprctl repl 'StreamSetRules(true) return "ok"' >/dev/null 2>&1
 hyprctl clients -j 2>/dev/null \
   | jq -r '.[] | select((.class | test("^steam_app_")) or (.class == "steam" and (.title | contains("Big Picture")))) | .address' \
@@ -43,12 +46,18 @@ hyprctl clients -j 2>/dev/null \
       hyprctl repl "hl.dispatch(hl.dsp.window.move({ workspace = \"name:stream\", follow = false, window = \"address:$a\" })) return 'ok'" >/dev/null 2>&1
       echo "  moved $a to stream" >> "$LOG"
     done
+fi
 
 # games launched for the stream should size to it
 ~/.local/bin/xwayland-primary
 
-# 4. focus the stream workspace
-hyprctl repl 'hl.dispatch(hl.dsp.focus({ workspace = "name:stream" })) return "ok"' >/dev/null 2>&1
+# 4. Desktop app: bring the TV's workspaces onto the stream output (see
+#    sunshine-desktop-mode). Any other app: focus the empty stream workspace.
+if [[ ${SUNSHINE_APP_NAME:-} == Desktop ]]; then
+  ~/.local/bin/sunshine-desktop-mode start >> "$LOG" 2>&1
+else
+  hyprctl repl 'hl.dispatch(hl.dsp.focus({ workspace = "name:stream" })) return "ok"' >/dev/null 2>&1
+fi
 
 echo "  monitors: $(hyprctl monitors -j 2>/dev/null | jq -c '[.[] | "\(.name) \(.width)x\(.height)@\(.x),\(.y) ws=\(.activeWorkspace.name)"]')" >> "$LOG"
 exit 0

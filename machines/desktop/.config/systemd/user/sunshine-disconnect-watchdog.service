@@ -1,0 +1,11 @@
+[Unit]
+Description=End Sunshine streams abandoned without quitting
+After=app-dev.lizardbyte.app.Sunshine.service
+
+[Service]
+ExecStart=%h/.local/bin/sunshine-disconnect-watchdog
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical-session.target

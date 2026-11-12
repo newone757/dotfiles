@@ -1,0 +1,97 @@
+#!/bin/bash
+# "Real desktop" mode for the Sunshine "Desktop" app: carry the workspaces of
+# the TV *and* the desk panel (and every window on them) onto the headless
+# "sunshine" output for the length of the stream, then send each one home.
+# Both, because single-instance apps (Claude, Spotify, ...) living on the
+# panel's workspace 6 otherwise yank focus off-stream when launched again.
+#
+#   start  -- park each physical monitor on an empty placeholder workspace,
+#             move its numbered workspaces onto the stream output, point the
+#             workspace 1-6 rules at the stream, show what the TV was showing
+#   stop   -- restore the monitors.lua workspace rules, send every workspace
+#             on the stream output (except "stream") back to the monitor it
+#             came from (TV for ones created mid-stream), re-show what each
+#             monitor was showing. Safe to run by hand, and when start never ran.
+#
+# Nothing can be lost: if stop never runs, removing the headless output makes
+# Hyprland re-home its workspaces onto a physical monitor anyway.
+set -uo pipefail
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+  export HYPRLAND_INSTANCE_SIGNATURE="$(ls -t "$XDG_RUNTIME_DIR/hypr" 2>/dev/null | head -1)"
+fi
+OUT=sunshine
+STATE="$XDG_RUNTIME_DIR/sunshine-desktop-mode"   # lines: "show MON WS" / "home WS MON"
+TV=$(~/.local/bin/display-name tv 2>/dev/null); TV=${TV:-HDMI-A-1}
+PANEL=$(~/.local/bin/display-name panel 2>/dev/null); PANEL=${PANEL:-DP-3}
+
+dsp() { hyprctl repl "hl.dispatch($1) return \"ok\"" >/dev/null 2>&1; }
+rule() { hyprctl repl "hl.workspace_rule($1) return \"ok\"" >/dev/null 2>&1; }
+
+# Workspace rules. monitors.lua pins 1-5 to the TV and 6 to the panel; a later
+# rule for the same workspace wins, so while streaming point them at the stream
+# (SUPER+4 on a workspace that doesn't exist yet then creates it in the stream,
+# not on an invisible monitor), and restore the monitors.lua values after.
+# Runtime rules only: a config reload would reset the headless output.
+rules_to_stream() {
+  for ws in 1 2 3 4 5; do rule "{ workspace = \"$ws\", monitor = \"$OUT\", default = false }"; done
+  rule "{ workspace = \"6\", monitor = \"$OUT\", default = false, layout = \"scrolling\" }"
+}
+rules_restore() {
+  for ws in 1 2 3 4 5; do
+    local def=false; [[ $ws == 1 ]] && def=true
+    rule "{ workspace = \"$ws\", monitor = \"$TV\", default = $def }"
+  done
+  rule "{ workspace = \"6\", monitor = \"$PANEL\", default = true, layout = \"scrolling\" }"
+}
+
+# Value lookups in the state file.
+shown_on() { awk -v m="$1" '$1=="show" && $2==m {print $3}' "$STATE" 2>/dev/null; }
+home_of()  { awk -v w="$1" '$1=="home" && $2==w {print $3}' "$STATE" 2>/dev/null; }
+
+case "${1:-}" in
+  start)
+    : > "$STATE"
+    rules_to_stream
+    moved=()
+    for mon in "$PANEL" "$TV"; do
+      show=$(hyprctl monitors -j | jq -r --arg m "$mon" '.[]|select(.name==$m)|.activeWorkspace.name')
+      [[ -n $show ]] || continue   # monitor off/absent
+      echo "show $mon $show" >> "$STATE"
+      mapfile -t wss < <(hyprctl workspaces -j | jq -r --arg m "$mon" '.[]|select(.monitor==$m and .id>0)|.name')
+      for ws in "${wss[@]}"; do echo "home $ws $mon" >> "$STATE"; done
+      # A harmless empty placeholder first, so Hyprland doesn't invent a
+      # numbered workspace there when the last real one leaves.
+      dsp "hl.dsp.focus({ monitor = \"$mon\" })"
+      dsp "hl.dsp.focus({ workspace = \"name:away-$mon\" })"
+      for ws in "${wss[@]}"; do
+        dsp "hl.dsp.workspace.move({ workspace = \"$ws\", monitor = \"$OUT\" })"
+        moved+=("$ws")
+      done
+    done
+    tvshow=$(shown_on "$TV")
+    [[ -n $tvshow ]] && dsp "hl.dsp.focus({ workspace = \"$tvshow\" })"
+    echo "  desktop mode: moved [${moved[*]}] to $OUT, showing ${tvshow:-?}"
+    ;;
+  stop)
+    rules_restore
+    mapfile -t wss < <(hyprctl workspaces -j | jq -r --arg m "$OUT" '.[]|select(.monitor==$m and .name!="stream" and .id>0)|.name')
+    back=()
+    for ws in "${wss[@]}"; do
+      home=$(home_of "$ws"); home=${home:-$TV}
+      dsp "hl.dsp.workspace.move({ workspace = \"$ws\", monitor = \"$home\" })"
+      back+=("$ws->$home")
+    done
+    # Re-show what each monitor had; TV last so it ends up focused.
+    while read -r _ mon ws; do
+      [[ $mon == "$TV" ]] && continue
+      dsp "hl.dsp.focus({ workspace = \"$ws\" })"
+    done < <(grep "^show " "$STATE" 2>/dev/null)
+    tvshow=$(shown_on "$TV")
+    [[ -n $tvshow ]] && dsp "hl.dsp.focus({ workspace = \"$tvshow\" })"
+    rm -f "$STATE"
+    (( ${#back[@]} )) && echo "  desktop mode: returned [${back[*]}]"
+    exit 0
+    ;;
+  *) echo "usage: $0 start|stop" >&2; exit 2 ;;
+esac

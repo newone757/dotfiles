@@ -15,10 +15,18 @@ o.window("^brave-127\\.0\\.0\\.1__-Default$", { float = true, center = true, siz
 -- the config reloads mid-stream.
 local stream_flag = (os.getenv("XDG_RUNTIME_DIR") or "/run/user/1000") .. "/sunshine-streaming"
 
-function StreamActive()
-  local f = io.open(stream_flag, "r")
+-- Not during a Desktop-app stream (sunshine-desktop-mode): the whole desktop is
+-- on the stream then, so games should open in place.
+local desktop_mode_flag = (os.getenv("XDG_RUNTIME_DIR") or "/run/user/1000") .. "/sunshine-desktop-mode"
+
+local function exists(path)
+  local f = io.open(path, "r")
   if f then f:close() return true end
   return false
+end
+
+function StreamActive()
+  return exists(stream_flag) and not exists(desktop_mode_flag)
 end
 
 StreamRules = {

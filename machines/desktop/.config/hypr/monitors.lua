@@ -70,5 +70,8 @@ hl.workspace_rule({ workspace = "name:stream", monitor = "sunshine", default = t
 for _, ev in ipairs({ "monitor.added", "monitor.removed", "monitor.layout_changed" }) do
   hl.on(ev, function()
     hl.exec_cmd("sleep 1; ~/.local/bin/xwayland-primary")
+    -- Mid-stream, a hotplug re-applies the catch-all rule above to the
+    -- headless Sunshine output and shrinks it; put it back. No-op otherwise.
+    hl.exec_cmd("sleep 0.5; ~/.local/bin/sunshine-virtual-display repair")
   end)
 end

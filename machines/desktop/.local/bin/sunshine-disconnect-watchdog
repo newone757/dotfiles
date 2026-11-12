@@ -1,0 +1,46 @@
+#!/bin/bash
+# Ends a Sunshine stream that a client abandoned without quitting.
+#
+# Sunshine treats "client disconnected" as "may resume", so the undo command
+# (sunshine-stream-end: games back to the TV, headless output removed, idle
+# inhibit released) only runs when the app is explicitly quit. Closing the
+# stream on the Thor, or a dropped connection, leaves everything parked on
+# the hidden "sunshine" output indefinitely.
+#
+# This polls Sunshine's log. If a stream is live (the sunshine-streaming flag
+# that sunshine-stream-begin touches) and the last client event is a
+# disconnect older than GRACE seconds with no reconnect, it restarts Sunshine
+# (which drops the abandoned session without needing web-UI credentials), then
+# runs sunshine-stream-end itself if the flag is still there. Reconnecting
+# within GRACE resumes the stream as normal.
+#
+# Runs as the user unit sunshine-disconnect-watchdog.service.
+GRACE="${SUNSHINE_DISCONNECT_GRACE:-180}"
+POLL="${SUNSHINE_DISCONNECT_POLL:-20}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+LOG="$HOME/.config/sunshine/sunshine.log"
+FLAG="$XDG_RUNTIME_DIR/sunshine-streaming"
+UNIT=app-dev.lizardbyte.app.Sunshine.service
+PREPLOG="${XDG_STATE_HOME:-$HOME/.local/state}/sunshine-prep.log"
+
+note() { echo "$(date "+%F %T") watchdog: $*" | tee -a "$PREPLOG"; }
+
+while sleep "$POLL"; do
+  [[ -e $FLAG ]] || continue
+  last=$(grep -E "CLIENT (DIS)?CONNECTED" "$LOG" 2>/dev/null | tail -1)
+  [[ $last == *"CLIENT DISCONNECTED"* ]] || continue
+  ts=${last#[}; ts=${ts%%]*}; ts=${ts%.*}
+  t=$(date -d "$ts" +%s 2>/dev/null) || continue
+  # Only a disconnect from the current stream counts.
+  (( t >= $(stat -c %Y "$FLAG" 2>/dev/null || echo 0) )) || continue
+  age=$(( $(date +%s) - t ))
+  (( age >= GRACE )) || continue
+
+  note "client gone ${age}s without quitting; ending the stream"
+  systemctl --user restart "$UNIT"
+  sleep 10
+  if [[ -e $FLAG ]]; then
+    "$HOME/.local/bin/sunshine-stream-end"
+    note "ran sunshine-stream-end"
+  fi
+done

@@ -11,6 +11,9 @@
 set -uo pipefail
 
 NAME=sunshine
+# What the output is supposed to look like for the current stream, for repair.
+WANT_FILE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sunshine-output"
+POS=20000,0
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
 if [[ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
@@ -31,6 +34,14 @@ F="${SUNSHINE_CLIENT_FPS:-60}"
 [[ "$W" =~ ^[0-9]+$ && "$W" -ge 640  && "$W" -le 7680 ]] || W=1920
 [[ "$H" =~ ^[0-9]+$ && "$H" -ge 480  && "$H" -le 4320 ]] || H=1080
 [[ "$F" =~ ^[0-9]+$ && "$F" -ge 24   && "$F" -le 240  ]] || F=60
+
+# UI scale. Desktop-app streams to a HiDPI client (the MacBook, 3456x2234)
+# get scale 2 so the desktop is as large as the Mac's own UI instead of half
+# size. Game streams stay at 1: games want every pixel, and scale changes
+# nothing for them anyway (force_zero_scaling). Edit DESKTOP_HIDPI_SCALE to taste.
+DESKTOP_HIDPI_SCALE=2
+S=1
+if [[ ${SUNSHINE_APP_NAME:-} == Desktop && $H -ge 2000 ]]; then S=$DESKTOP_HIDPI_SCALE; fi
 
 exists() {
   hyprctl monitors -j 2>/dev/null | jq -e --arg n "$NAME" '.[]|select(.name==$n)' >/dev/null 2>&1
@@ -62,7 +73,7 @@ case "${1:-}" in
     # away from the physical layout (HDMI-A-2 0,0 + DP-6 below) with a gap so
     # the cursor can never wander between desktop and stream. Mode and position
     # go in ONE call: a separate --pos re-applies the headless default mode.
-    wlr-randr --output "$NAME" --custom-mode "${W}x${H}@${F}" --pos 20000,0 >/dev/null 2>&1
+    wlr-randr --output "$NAME" --custom-mode "${W}x${H}@${F}" --pos "$POS" --scale "$S" >/dev/null 2>&1
     if [[ "$W" != 1920 || "$H" != 1080 ]]; then
       for _ in $(seq 12); do
         [[ "$(geometry)" == "${W}x${H}" ]] && break
@@ -73,9 +84,26 @@ case "${1:-}" in
         echo "sunshine-virtual-display: wanted ${W}x${H}, got $(geometry)" >&2
       fi
     fi
-    echo "sunshine-virtual-display: $NAME at $(geometry)@${F}"
+    echo "$W $H $F $S" > "$WANT_FILE"
+    echo "sunshine-virtual-display: $NAME at $(geometry)@${F} scale $S"
+    ;;
+  repair)
+    # Hyprland re-applies monitors.lua's catch-all rule (preferred mode, auto
+    # position, scale 1) to the headless output on monitor hotplug -- e.g. the
+    # TV dropping and re-appearing on HDMI -- which shrinks the stream to
+    # 1920x1080 and parks it right next to the TV. monitors.lua calls this on
+    # every monitor event; it puts the stream geometry back if it drifted.
+    [[ -r $WANT_FILE ]] && exists || exit 0
+    read -r W H F S < "$WANT_FILE"
+    exec 9>"$WANT_FILE.lock"; flock -n 9 || exit 0
+    cur=$(hyprctl monitors -j | jq -r --arg n "$NAME" ".[]|select(.name==\$n)|\"\\(.width)x\\(.height)@\\(.x),\\(.y) \\(.scale)\"")
+    want="${W}x${H}@${POS} ${S}"
+    [[ $cur == "$want" ]] && exit 0
+    wlr-randr --output "$NAME" --custom-mode "${W}x${H}@${F}" --pos "$POS" --scale "$S" >/dev/null 2>&1
+    echo "$(date "+%F %T") sunshine-virtual-display: repaired $NAME ($cur -> $want)" >> "${XDG_STATE_HOME:-$HOME/.local/state}/sunshine-prep.log"
     ;;
   stop)
+    rm -f "$WANT_FILE"
     remove
     ;;
   *)
